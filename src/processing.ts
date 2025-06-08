@@ -109,6 +109,12 @@ export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[]
             console.log('[PDF2MD] Step 3 skipped: Post-processing disabled');
         }
         
+        // Step 3.5: Add PDF embed if enabled
+        if (plugin.settings.embedPDF) {
+            finalMarkdown += `\n\n![[${sourceFile.name}]]`;
+            console.log('[PDF2MD] Added PDF embed to markdown');
+        }
+        
         // Step 4: Create final markdown file
         console.log('[PDF2MD] Step 4: Creating final markdown file...');
         const generatedFilename = generateFilename(plugin.settings.filenamePattern, sourceFile.basename);

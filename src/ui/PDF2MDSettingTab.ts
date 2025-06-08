@@ -272,6 +272,16 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName('Embed Original PDF')
+			.setDesc('Include the original PDF embedded at the bottom of the generated Markdown file')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.embedPDF)
+				.onChange(async (value) => {
+					this.plugin.settings.embedPDF = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName('Enable Folder Watching')
 			.setDesc('Automatically process PDFs when added to the watch folder')
 			.addToggle(toggle => toggle

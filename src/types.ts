@@ -28,6 +28,7 @@ export interface PDF2MDSettings {
 	outputFolder: string;
 	enableWatching: boolean;
 	filenamePattern: string;
+	embedPDF: boolean;
 }
 
 export interface SavedPrompt {
@@ -70,5 +71,6 @@ export const DEFAULT_SETTINGS: PDF2MDSettings = {
 	watchFolder: '',
 	outputFolder: '',
 	enableWatching: false,
-	filenamePattern: '{{basename}}'
+	filenamePattern: '{{basename}}',
+	embedPDF: false
 }
