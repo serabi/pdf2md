@@ -1,0 +1,10 @@
+{
+  "defaultPrompts": [
+    {
+      "id": "image-text-extraction",
+      "name": "Comprehensive Text Extraction",
+      "content": "Extract the text from this image of a document page and convert it to markdown format.\n\nKEY REQUIREMENTS:\n1. Include ALL visible text - do not skip or summarize any content\n2. Preserve the document's structure and hierarchy\n3. Use proper markdown formatting:\n   - # for main titles\n   - ## for section headers\n   - ### for subsections\n   - **bold** for emphasized text\n   - *italic* for italicized text\n   - - or * for bullet points\n   - 1. for numbered lists\n   - > for quotes or indented sections\n   - ``` for code blocks if applicable\n   - `inline code` for technical terms or code snippets\n\n4. Maintain original:\n   - Paragraph breaks\n   - List structures\n   - Text alignment where significant\n   - Special formatting\n\n5. For unclear text, use [unclear: best guess] format\n6. For handwritten notes or annotations, include them inline where they appear\n7. For diagrams or figures, provide a brief description: [Figure: description]\n\nOutput clean, well-formatted markdown that accurately represents the original document.",
+      "isDefault": true
+    }
+  ]
+}

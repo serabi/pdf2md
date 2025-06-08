@@ -1,8 +1,303 @@
-/*
+/* PDF2MD Plugin Styles */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* Global textarea fix for visibility */
+.modal textarea,
+.setting-item textarea,
+.prompt-modal textarea {
+    color: var(--text-normal) !important;
+    -webkit-text-fill-color: var(--text-normal) !important;
+    opacity: 1 !important;
+}
 
-If your plugin does not need CSS, delete this file.
+/* Ribbon Icon */
+.pdf2md-ribbon-icon {
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+}
 
-*/
+.pdf2md-ribbon-icon:hover {
+    color: var(--text-normal);
+}
+
+/* Modal Styles */
+.pdf2md-modal {
+    max-width: 600px;
+    min-height: 400px;
+}
+
+.pdf2md-modal h2 {
+    margin-bottom: 1.5em;
+    color: var(--text-normal);
+}
+
+.pdf2md-modal .file-input-container,
+.pdf2md-modal .vault-file-container {
+    margin-bottom: 2em;
+}
+
+.pdf2md-modal label {
+    display: block;
+    margin-bottom: 0.5em;
+    font-weight: 500;
+    color: var(--text-normal);
+}
+
+.pdf2md-modal input[type="file"] {
+    width: 100%;
+    padding: 0.5em;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-secondary);
+    cursor: pointer;
+}
+
+.pdf2md-modal select {
+    width: 100%;
+    padding: 0.5em;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-secondary);
+    color: var(--text-normal);
+    cursor: pointer;
+}
+
+.pdf2md-modal .mod-warning {
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 1em;
+}
+
+/* Button Container */
+.button-container {
+    display: flex;
+    gap: 0.5em;
+    margin-top: 1.5em;
+    justify-content: flex-end;
+}
+
+/* Settings Tab Styles */
+.pdf2md-settings h3 {
+    margin-top: 2em;
+    margin-bottom: 1em;
+    color: var(--text-normal);
+    border-bottom: 1px solid var(--background-modifier-border);
+    padding-bottom: 0.5em;
+}
+
+.pdf2md-settings textarea {
+    width: 100%;
+    font-family: var(--font-monospace);
+    font-size: 0.9em;
+    resize: vertical;
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    padding: 0.75em;
+    color: var(--text-normal) !important;
+    -webkit-text-fill-color: var(--text-normal) !important;
+}
+
+/* Progress Indicator */
+.pdf2md-progress {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    background: var(--background-modifier-border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 1em 0;
+}
+
+.pdf2md-progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--interactive-accent);
+    transition: width 0.3s ease;
+    border-radius: 2px;
+}
+
+/* Save Prompt Modal */
+.save-prompt-modal input {
+    width: 100%;
+    margin-top: 0.5em;
+    padding: 0.5em;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-secondary);
+    color: var(--text-normal);
+}
+
+/* Saved Prompts List */
+.saved-prompt-item {
+    padding: 0.75em;
+    background: var(--background-secondary);
+    border-radius: 4px;
+    margin-bottom: 0.5em;
+}
+
+.saved-prompt-item:hover {
+    background: var(--background-secondary-alt);
+}
+
+/* API Key Input Security */
+input[type="password"] {
+    font-family: monospace;
+    letter-spacing: 0.1em;
+}
+
+/* Error Messages */
+.pdf2md-error {
+    color: var(--text-error);
+    padding: 0.5em;
+    background: var(--background-modifier-error);
+    border-radius: 4px;
+    margin: 0.5em 0;
+}
+
+/* Success Messages */
+.pdf2md-success {
+    color: var(--text-success);
+    padding: 0.5em;
+    background: var(--background-modifier-success);
+    border-radius: 4px;
+    margin: 0.5em 0;
+}
+
+/* Loading States */
+.pdf2md-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2em;
+    color: var(--text-muted);
+}
+
+.pdf2md-loading::before {
+    content: "";
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    border: 2px solid var(--text-muted);
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: pdf2md-spin 0.8s linear infinite;
+    margin-right: 0.5em;
+}
+
+@keyframes pdf2md-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Prompt Modal Styles */
+.prompt-view-modal,
+.prompt-edit-modal {
+    max-width: 800px;
+    min-height: 500px;
+}
+
+.prompt-view-modal textarea,
+.prompt-edit-modal textarea {
+    font-family: var(--font-monospace);
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    padding: 0.75em;
+    margin-bottom: 1em;
+    resize: vertical;
+    color: var(--text-normal) !important;
+    -webkit-text-fill-color: var(--text-normal) !important;
+}
+
+.prompt-edit-modal input {
+    font-size: 1em;
+    padding: 0.5em;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-secondary);
+    color: var(--text-normal);
+    margin-bottom: 1em;
+}
+
+.prompt-edit-modal label {
+    display: block;
+    margin-bottom: 0.25em;
+    font-weight: 500;
+    color: var(--text-normal);
+}
+
+/* Tab Navigation Styles */
+.tab-container {
+    display: flex;
+    margin-bottom: 2em;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.tab-button {
+    background: none;
+    border: none;
+    padding: 0.75em 1.5em;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+    color: var(--text-normal);
+    background: var(--background-modifier-hover);
+}
+
+.tab-button.active {
+    color: var(--interactive-accent);
+    border-bottom-color: var(--interactive-accent);
+}
+
+.tab-content {
+    min-height: 400px;
+}
+
+/* Setting items with multiple buttons */
+.setting-item .setting-item-control {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25em;
+    align-items: center;
+}
+
+.setting-item .setting-item-control button {
+    flex-shrink: 0;
+    margin: 0.1em;
+}
+
+/* Prompts Tab Styles */
+.prompts-tab .setting-item-description {
+    margin-bottom: 1em;
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .pdf2md-modal {
+        min-height: 300px;
+    }
+    
+    .prompt-view-modal,
+    .prompt-edit-modal {
+        max-width: 90vw;
+        min-height: 400px;
+    }
+    
+    .button-container {
+        flex-direction: column-reverse;
+    }
+    
+    .button-container button {
+        width: 100%;
+    }
+}

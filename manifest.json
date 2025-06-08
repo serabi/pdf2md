@@ -1,11 +1,10 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
-	"version": "1.0.0",
+	"id": "pdf2md-plugin",
+	"name": "PDF To Markdown Converter",
+	"version": "0.1.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "Convert PDF documents to structured Markdown using AI (Anthropic Claude or Ollama). Extract text from PDFs and transform them into clean, well-organized Markdown notes for your vault.",
+	"author": "PDF2MD Development Team",
+	"authorUrl": "https://github.com/pdf2md-plugin",
 	"isDesktopOnly": false
 }

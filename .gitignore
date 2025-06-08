@@ -20,3 +20,39 @@ data.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
+
+# Environment files that might contain API keys
+.env
+.env.local
+.env.production
+.env.development
+
+# Any files containing API keys or sensitive configuration
+config.json
+secrets.json
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Development/testing files that might contain sensitive data
+test-pdfs/
+test-output/
+*.pdf
+
+# Claude Code artifacts
+.claude/
+
+# OS generated files
+Thumbs.db
+*.tmp
+*.temp
+
+# Log files that might contain sensitive information
+*.log
+logs/
+
+# Backup files
+*.bak
+*.backup
+*~

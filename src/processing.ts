@@ -1,0 +1,180 @@
+import { TFile, Notice } from 'obsidian';
+import { ConfirmModal } from './ui/ConfirmModal';
+import type PDF2MDPlugin from '../main';
+import { processWithAI } from './ai';
+import { extractImagesFromPDF } from './pdf';
+import { getOutputPath, sanitizeFileName, arrayBufferToBase64 } from './utils';
+
+export async function processPDF(plugin: PDF2MDPlugin, file: TFile) {
+    try {
+        new Notice('Processing PDF...');
+        if (plugin.settings.selectedProvider === 'anthropic' && !plugin.settings.anthropicApiKey) {
+            new Notice('Please set your Anthropic API key in settings');
+            return;
+        }
+        const arrayBuffer = await plugin.app.vault.readBinary(file);
+        
+        // Step 1: Extract images from PDF
+        console.log('[PDF2MD] Step 1: Extracting images from PDF...');
+        const pdfImages = await extractImagesFromPDF(arrayBuffer);
+        if (!pdfImages || pdfImages.length === 0) {
+            console.error('[PDF2MD] Failed to extract images from PDF');
+            new Notice('Failed to extract images from PDF. Try using the "Process Images" option instead.', 8000);
+            return;
+        }
+        console.log('[PDF2MD] Step 1 complete: Extracted', pdfImages.length, 'images from PDF');
+        
+        // Continue with AI processing
+        await processImagesWithAI(plugin, pdfImages, file);
+    } catch (error) {
+        console.error('[PDF2MD] Critical error in processPDF:', error);
+        console.error('[PDF2MD] Error stack:', error.stack);
+        new Notice('Failed to process PDF: ' + error.message);
+    }
+}
+
+export async function processImages(plugin: PDF2MDPlugin, imageFiles: TFile[]) {
+    try {
+        new Notice('Processing images...');
+        if (plugin.settings.selectedProvider === 'anthropic' && !plugin.settings.anthropicApiKey) {
+            new Notice('Please set your Anthropic API key in settings');
+            return;
+        }
+
+        // Convert image files to base64 data URLs
+        console.log('[PDF2MD] Step 1: Converting image files to data URLs...');
+        const imageDataUrls: string[] = [];
+        
+        for (const imageFile of imageFiles) {
+            const arrayBuffer = await plugin.app.vault.readBinary(imageFile);
+            
+            // Detect image type from file extension
+            let mimeType = 'image/png';
+            if (imageFile.extension.toLowerCase() === 'jpg' || imageFile.extension.toLowerCase() === 'jpeg') {
+                mimeType = 'image/jpeg';
+            } else if (imageFile.extension.toLowerCase() === 'webp') {
+                mimeType = 'image/webp';
+            }
+            
+            // Convert to base64
+            const base64 = arrayBufferToBase64(arrayBuffer);
+            const dataUrl = `data:${mimeType};base64,${base64}`;
+            imageDataUrls.push(dataUrl);
+            
+            console.log(`[PDF2MD] Converted ${imageFile.name} (${arrayBuffer.byteLength} bytes) to data URL`);
+        }
+        
+        console.log('[PDF2MD] Step 1 complete: Converted', imageDataUrls.length, 'images');
+        
+        // Use first image file for naming the output
+        const baseFile = imageFiles[0];
+        await processImagesWithAI(plugin, imageDataUrls, baseFile);
+    } catch (error) {
+        console.error('[PDF2MD] Critical error in processImages:', error);
+        console.error('[PDF2MD] Error stack:', error.stack);
+        new Notice('Failed to process images: ' + error.message);
+    }
+}
+
+export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[], sourceFile: TFile) {
+    try {
+        // Step 2: Initial AI processing with main prompt
+        console.log('[PDF2MD] Step 2: Initial AI processing with provider:', plugin.settings.selectedProvider);
+        const initialMarkdown = await processWithAI(plugin.settings, images, plugin.settings.currentPrompt);
+        if (!initialMarkdown) {
+            console.error('[PDF2MD] Failed initial AI processing');
+            new Notice('Failed to process images with AI');
+            return;
+        }
+        console.log('[PDF2MD] Step 2 complete: Initial AI processing done, markdown length:', initialMarkdown.length);
+        
+        let finalMarkdown = initialMarkdown;
+        
+        // Step 3: Post-processing (if enabled)
+        if (plugin.settings.enablePostProcessing) {
+            console.log('[PDF2MD] Step 3: Post-processing markdown...');
+            try {
+                const postProcessedMarkdown = await postProcessMarkdown(plugin, finalMarkdown);
+                if (postProcessedMarkdown) {
+                    finalMarkdown = postProcessedMarkdown;
+                    console.log('[PDF2MD] Step 3 complete: Post-processing successful, length:', finalMarkdown.length);
+                } else {
+                    console.warn('[PDF2MD] Step 3 warning: Post-processing failed, using original markdown');
+                }
+            } catch (error) {
+                console.error('[PDF2MD] Step 3 error:', error);
+                console.warn('[PDF2MD] Continuing with original markdown due to post-processing error');
+            }
+        } else {
+            console.log('[PDF2MD] Step 3 skipped: Post-processing disabled');
+        }
+        
+        // Step 4: Create final markdown file
+        console.log('[PDF2MD] Step 4: Creating final markdown file...');
+        const sanitizedBasename = sanitizeFileName(sourceFile.basename);
+        const mdFilePath = getOutputPath(plugin.settings, sourceFile, sanitizedBasename);
+        console.log('[PDF2MD] Output file path:', mdFilePath);
+        
+        const existingFile = plugin.app.vault.getAbstractFileByPath(mdFilePath);
+        if (existingFile) {
+            console.log('[PDF2MD] File already exists:', mdFilePath);
+            new ConfirmModal(
+                plugin.app,
+                'File already exists',
+                `${sanitizedBasename}.md already exists. Do you want to overwrite it?`,
+                async () => {
+                    console.log('[PDF2MD] Step 4: Overwriting existing file...');
+                    await plugin.app.vault.modify(existingFile as TFile, finalMarkdown);
+                    new Notice('Markdown file updated successfully');
+                    console.log('[PDF2MD] Step 4 complete: File updated successfully');
+                }
+            ).open();
+        } else {
+            console.log('[PDF2MD] Step 4: Creating new file...');
+            
+            // Check if file exists and add number suffix if needed
+            let finalPath = mdFilePath;
+            let counter = 1;
+            
+            while (await plugin.app.vault.adapter.exists(finalPath)) {
+                const pathParts = mdFilePath.split('.');
+                pathParts[pathParts.length - 2] = `${sourceFile.basename} ${counter}`;
+                finalPath = pathParts.join('.');
+                counter++;
+                console.log(`[PDF2MD] File exists, trying: ${finalPath}`);
+            }
+            
+            await plugin.app.vault.create(finalPath, finalMarkdown);
+            new Notice('Markdown file created successfully');
+            console.log(`[PDF2MD] Step 4 complete: File created at ${finalPath}`);
+        }
+        
+        console.log('[PDF2MD] Processing workflow completed successfully');
+    } catch (error) {
+        console.error('[PDF2MD] Critical error in processPDF:', error);
+        console.error('[PDF2MD] Error stack:', error.stack);
+        new Notice('Failed to process PDF: ' + error.message);
+    }
+}
+
+export async function postProcessMarkdown(plugin: PDF2MDPlugin, markdown: string): Promise<string | null> {
+    console.log('[PDF2MD] Starting post-processing with template');
+    try {
+        // Get current date in YYYY-MM-DD format
+        const now = new Date();
+        const date = now.toISOString().split('T')[0];
+        const datetime = now.toISOString();
+        
+        // Replace placeholders in the template
+        let processedContent = plugin.settings.postProcessingTemplate
+            .replace(/\{\{content\}\}/g, markdown)
+            .replace(/\{\{date\}\}/g, date)
+            .replace(/\{\{datetime\}\}/g, datetime)
+            .replace(/\{\{time\}\}/g, now.toTimeString().split(' ')[0]);
+            
+        return processedContent;
+    } catch (error) {
+        console.error('[PDF2MD] Post-processing error:', error);
+        throw error;
+    }
+}

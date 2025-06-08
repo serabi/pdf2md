@@ -1,94 +1,181 @@
-# Obsidian Sample Plugin
+# PDF2MD - PDF to Markdown Converter for Obsidian
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Convert PDF documents to structured Markdown using AI (Anthropic Claude or Ollama). Extract text from PDFs and transform them into clean, well-organized Markdown notes for your vault.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Features
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+### 🤖 **AI-Powered Conversion**
+- **Anthropic Claude Integration**: Support for Claude 3.5 Sonnet, Claude 3 Opus, and other Claude models
+- **Local Ollama Support**: Use vision-capable models like LLaVa for completely local processing
+- **Advanced OCR**: Handles handwritten text, complex layouts, and multi-column documents
+- **Vision Processing**: Converts PDF pages to images and uses AI vision capabilities for accurate text extraction
 
-## First time developing plugins?
+### 📄 **Multiple Conversion Methods**
+- **Ribbon Icon**: Quick access via the PDF2MD icon in Obsidian's ribbon
+- **Command Palette**: "Convert PDF to Markdown" and "Process current PDF file" commands
+- **Context Menu**: Right-click any PDF in the file explorer to convert
+- **Automatic Watching**: Monitor folders for new PDFs and convert them automatically
 
-Quick starting guide for new plugin devs:
+### ⚙️ **Customizable Processing**
+- **Custom Prompts**: Create, edit, and manage conversion prompts for different document types
+- **Built-in Templates**: Pre-configured prompts for academic papers, handwritten notes, and general documents
+- **Post-Processing**: Apply templates with frontmatter, tags, and custom formatting
+- **Output Control**: Choose where converted files are saved
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+### 🔒 **Security & Privacy**
+- **Secure API Key Storage**: API keys are stored securely in Obsidian's encrypted storage
+- **Path Validation**: Protection against directory traversal and command injection
+- **No Data Logging**: Sensitive information is never logged or exposed
 
-## Releasing new releases
+## Installation
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+### From Obsidian Community Plugins (Recommended)
+1. Open Obsidian Settings
+2. Go to **Community plugins** and disable **Safe mode**
+3. Click **Browse** and search for "PDF2MD"
+4. Install and enable the plugin
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+### Manual Installation
+1. Download the latest release from [GitHub](https://github.com/serabi/pdf2md/releases)
+2. Extract the files to `{VaultFolder}/.obsidian/plugins/pdf2md-plugin/`
+3. Reload Obsidian and enable the plugin in settings
 
-## Adding your plugin to the community plugin list
+## Setup
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+### AI Provider Configuration
 
-## How to use
+#### Option 1: Anthropic Claude (Recommended)
+1. Go to **Settings** → **PDF2MD** → **General** tab
+2. Select **Anthropic Claude** as your AI Provider
+3. Enter your [Anthropic API key](https://console.anthropic.com/)
+4. Choose your preferred Claude model (Claude 3.5 Sonnet recommended)
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+#### Option 2: Ollama (Local Processing)
+1. Install [Ollama](https://ollama.ai/) on your computer
+2. Install a vision-capable model: `ollama pull llava`
+3. In plugin settings, select **Ollama (Local)** as your AI Provider
+4. Set Ollama URL (default: `http://localhost:11434`)
+5. Click **Refresh Models** to load available models
 
-## Manually installing the plugin
+## Usage
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+### Quick Convert
+1. **From Ribbon**: Click the PDF2MD icon and select a PDF file
+2. **From File Explorer**: Right-click any PDF → "Convert to Markdown"
+3. **From Command Palette**: `Ctrl/Cmd+P` → "Convert PDF to Markdown"
+4. **Current PDF**: When viewing a PDF, use "Process current PDF file"
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+### Automatic Processing
+1. Go to **Settings** → **PDF2MD** → **General** tab
+2. Enable **Folder Watching**
+3. Set **Watch Folder** (e.g., "PDF Inbox")
+4. Optionally set **Output Folder** for converted files
+5. Drop PDFs into the watch folder for automatic conversion
 
-## Funding URL
+### Custom Prompts
+1. Go to **Settings** → **PDF2MD** → **Prompts** tab
+2. **Built-in Prompts**: Edit default prompts for different document types
+3. **Custom Prompts**: Create new prompts for specific needs
+4. **Use Prompts**: Select any prompt from the General tab dropdown
 
-You can include funding URLs where people who use your plugin can financially support it.
+### Post-Processing Templates
+1. Enable **Post-processing Template** in General settings
+2. Use placeholders in your template:
+   - `{{content}}` - The generated markdown
+   - `{{date}}` - Current date (YYYY-MM-DD)
+   - `{{datetime}}` - Current datetime (ISO format)
+   - `{{time}}` - Current time (HH:MM:SS)
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+**Example Template:**
+```markdown
+---
+tags: [pdf2md, converted]
+date: {{date}}
+source: PDF
+---
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
+# Converted Document
+
+{{content}}
 ```
 
-If you have multiple URLs, you can also do:
+## Configuration Options
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+### General Settings
+- **AI Provider**: Choose between Anthropic Claude or Ollama
+- **API Keys**: Securely stored and password-masked
+- **Model Selection**: Automatic refresh for Ollama models
+- **Current Prompt**: Edit active conversion prompt
+- **Output Folder**: Where to save converted files
 
-## API Documentation
+### Prompt Management
+- **Default Prompts**: Built-in templates you can customize
+- **Custom Prompts**: Create your own conversion instructions
+- **Prompt Library**: Save and organize multiple prompts
 
-See https://github.com/obsidianmd/obsidian-api
+### Advanced Options
+- **Post-processing**: Apply templates to generated content
+- **Folder Watching**: Automatic PDF monitoring
+- **Security Features**: Path validation and secure storage
+
+## Supported Document Types
+
+- **Academic Papers**: Research articles, journals, conference papers
+- **Handwritten Notes**: Scanned notebooks, handwritten documents
+- **Technical Documents**: Manuals, specifications, reports
+- **Books & Articles**: Text-heavy documents with complex layouts
+- **Forms & Tables**: Structured data and tabular content
+- **Multi-language**: Documents in various languages
+
+## Troubleshooting
+
+### Common Issues
+
+**"No models found" for Ollama**
+- Ensure Ollama is running: `ollama serve`
+- Install a vision model: `ollama pull llava`
+- Check Ollama URL in settings
+
+**API Key errors**
+- Verify your Anthropic API key is correct
+- Check your API usage limits
+- Ensure the key has proper permissions
+
+**PDF conversion fails**
+- Large PDFs may take several minutes
+- Try with a smaller PDF first
+- Check console for detailed error messages
+
+**Poor conversion quality**
+- Try different prompts for your document type
+- Use Claude 3.5 Sonnet for best results
+- Consider adjusting your custom prompts
+
+### Performance Tips
+- **Large PDFs**: May take 2-5 minutes for complex documents
+- **Handwritten text**: Use specific prompts mentioning handwriting
+- **Multiple languages**: Specify languages in your prompt
+- **Tables**: Use prompts that emphasize table structure preservation
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+1. Clone the repository
+2. Run `npm install`
+3. Run `npm run dev` for development mode
+4. Run `npm run build` for production build
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+## Support
+
+- **GitHub Issues**: [Report bugs or request features](https://github.com/serabi/pdf2md/issues)
+- **Discussions**: [Community support and discussions](https://github.com/serabi/pdf2md/discussions)
+
+---
+
+**Made with ❤️ for the Obsidian community**
