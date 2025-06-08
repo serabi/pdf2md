@@ -4,25 +4,25 @@ Convert PDF documents to structured Markdown using AI (Anthropic Claude or Ollam
 
 ## Features
 
-### 🤖 **AI-Powered Conversion**
+### **AI-Powered Conversion**
 - **Anthropic Claude Integration**: Support for Claude 3.5 Sonnet, Claude 3 Opus, and other Claude models
 - **Local Ollama Support**: Use vision-capable models like LLaVa for completely local processing
 - **Advanced OCR**: Handles handwritten text, complex layouts, and multi-column documents
 - **Vision Processing**: Converts PDF pages to images and uses AI vision capabilities for accurate text extraction
 
-### 📄 **Multiple Conversion Methods**
+### **Multiple Conversion Methods**
 - **Ribbon Icon**: Quick access via the PDF2MD icon in Obsidian's ribbon
 - **Command Palette**: "Convert PDF to Markdown" and "Process current PDF file" commands
 - **Context Menu**: Right-click any PDF in the file explorer to convert
 - **Automatic Watching**: Monitor folders for new PDFs and convert them automatically
 
-### ⚙️ **Customizable Processing**
+### **Customizable Processing**
 - **Custom Prompts**: Create, edit, and manage conversion prompts for different document types
 - **Built-in Templates**: Pre-configured prompts for academic papers, handwritten notes, and general documents
 - **Post-Processing**: Apply templates with frontmatter, tags, and custom formatting
 - **Output Control**: Choose where converted files are saved
 
-### 🔒 **Security & Privacy**
+### **Security & Privacy**
 - **Secure API Key Storage**: API keys are stored securely in Obsidian's encrypted storage
 - **Path Validation**: Protection against directory traversal and command injection
 - **No Data Logging**: Sensitive information is never logged or exposed
@@ -178,4 +178,4 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ---
 
-**Made with ❤️ for the Obsidian community**
+**Made for the Obsidian community**
