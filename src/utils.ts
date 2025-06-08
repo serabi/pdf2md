@@ -50,6 +50,19 @@ export function arrayBufferToBase64(buffer: ArrayBuffer): string {
     return btoa(binary);
 }
 
+export function generateFilename(pattern: string, originalBasename: string): string {
+    const now = new Date();
+    const date = now.toISOString().split('T')[0];
+    const datetime = now.toISOString();
+    const time = now.toTimeString().split(' ')[0];
+    
+    return pattern
+        .replace(/\{\{basename\}\}/g, originalBasename)
+        .replace(/\{\{date\}\}/g, date)
+        .replace(/\{\{datetime\}\}/g, datetime)
+        .replace(/\{\{time\}\}/g, time);
+}
+
 export function getOutputPath(settings: PDF2MDSettings, originalFile: TFile, baseName: string): string {
     if (settings.outputFolder) {
         // Use custom output folder

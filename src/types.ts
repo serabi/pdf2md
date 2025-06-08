@@ -27,6 +27,7 @@ export interface PDF2MDSettings {
 	watchFolder: string;
 	outputFolder: string;
 	enableWatching: boolean;
+	filenamePattern: string;
 }
 
 export interface SavedPrompt {
@@ -68,5 +69,6 @@ export const DEFAULT_SETTINGS: PDF2MDSettings = {
 	enablePostProcessing: true,
 	watchFolder: '',
 	outputFolder: '',
-	enableWatching: false
+	enableWatching: false,
+	filenamePattern: '{{basename}}'
 }

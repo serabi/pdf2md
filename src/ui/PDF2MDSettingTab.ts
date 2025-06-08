@@ -247,7 +247,7 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 		}
 
 		// Folder Settings
-		containerEl.createEl('h3', { text: 'Folder Settings' });
+		containerEl.createEl('h3', { text: 'File & Folder Settings' });
 
 		new Setting(containerEl)
 			.setName('Output Folder')
@@ -257,6 +257,17 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.outputFolder)
 				.onChange(async (value) => {
 					this.plugin.settings.outputFolder = value.trim();
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Filename Pattern')
+			.setDesc('Pattern for generated markdown filenames. Available placeholders: {{basename}} (original filename without extension), {{date}} (YYYY-MM-DD), {{datetime}} (ISO format), {{time}} (HH:MM:SS)')
+			.addText(text => text
+				.setPlaceholder('{{basename}}')
+				.setValue(this.plugin.settings.filenamePattern)
+				.onChange(async (value) => {
+					this.plugin.settings.filenamePattern = value.trim() || '{{basename}}';
 					await this.plugin.saveSettings();
 				}));
 

@@ -3,7 +3,7 @@ import { ConfirmModal } from './ui/ConfirmModal';
 import type PDF2MDPlugin from '../main';
 import { processWithAI } from './ai';
 import { extractImagesFromPDF } from './pdf';
-import { getOutputPath, sanitizeFileName, arrayBufferToBase64 } from './utils';
+import { getOutputPath, sanitizeFileName, arrayBufferToBase64, generateFilename } from './utils';
 
 export async function processPDF(plugin: PDF2MDPlugin, file: TFile) {
     try {
@@ -111,7 +111,8 @@ export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[]
         
         // Step 4: Create final markdown file
         console.log('[PDF2MD] Step 4: Creating final markdown file...');
-        const sanitizedBasename = sanitizeFileName(sourceFile.basename);
+        const generatedFilename = generateFilename(plugin.settings.filenamePattern, sourceFile.basename);
+        const sanitizedBasename = sanitizeFileName(generatedFilename);
         const mdFilePath = getOutputPath(plugin.settings, sourceFile, sanitizedBasename);
         console.log('[PDF2MD] Output file path:', mdFilePath);
         
@@ -138,7 +139,9 @@ export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[]
             
             while (await plugin.app.vault.adapter.exists(finalPath)) {
                 const pathParts = mdFilePath.split('.');
-                pathParts[pathParts.length - 2] = `${sourceFile.basename} ${counter}`;
+                const incrementedFilename = generateFilename(plugin.settings.filenamePattern, `${sourceFile.basename} ${counter}`);
+                const sanitizedIncrementedName = sanitizeFileName(incrementedFilename);
+                pathParts[pathParts.length - 2] = sanitizedIncrementedName;
                 finalPath = pathParts.join('.');
                 counter++;
                 console.log(`[PDF2MD] File exists, trying: ${finalPath}`);
