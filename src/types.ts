@@ -58,8 +58,8 @@ export const DEFAULT_SETTINGS: PDF2MDSettings = {
 	currentPrompt: DEFAULT_PROMPTS[0].content,
 	savedPrompts: [],
 	anthropicModels: [
-		'claude-3-7-sonnet-4-20250514',
-		'claude-3-opus-4-20250514',
+		'claude-sonnet-4-20250514',
+		'claude-opus-4-20250514',
 		'claude-3-5-sonnet-20241022',
 		'claude-3-5-sonnet-20240620',
 		'claude-3-5-haiku-20241022',

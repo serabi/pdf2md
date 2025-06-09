@@ -42,6 +42,7 @@ test-output/
 
 # Claude Code artifacts
 .claude/
+CLAUDE.md
 
 # OS generated files
 Thumbs.db
