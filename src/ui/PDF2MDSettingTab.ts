@@ -282,6 +282,30 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName('Move Processed PDFs')
+			.setDesc('Move processed PDF files to a designated folder after conversion')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.moveProcessedPDFs)
+				.onChange(async (value) => {
+					this.plugin.settings.moveProcessedPDFs = value;
+					await this.plugin.saveSettings();
+					this.display(); // Refresh to show/hide folder setting
+				}));
+
+		if (this.plugin.settings.moveProcessedPDFs) {
+			new Setting(containerEl)
+				.setName('Processed PDF Folder')
+				.setDesc('Folder to move processed PDF files to')
+				.addText(text => text
+					.setPlaceholder('e.g., Processed PDFs')
+					.setValue(this.plugin.settings.processedPDFFolder)
+					.onChange(async (value) => {
+						this.plugin.settings.processedPDFFolder = value.trim();
+						await this.plugin.saveSettings();
+					}));
+		}
+
+		new Setting(containerEl)
 			.setName('Enable Folder Watching')
 			.setDesc('Automatically process PDFs when added to the watch folder')
 			.addToggle(toggle => toggle

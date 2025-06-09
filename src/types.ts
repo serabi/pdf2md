@@ -29,6 +29,8 @@ export interface PDF2MDSettings {
 	enableWatching: boolean;
 	filenamePattern: string;
 	embedPDF: boolean;
+	moveProcessedPDFs: boolean;
+	processedPDFFolder: string;
 }
 
 export interface SavedPrompt {
@@ -56,6 +58,8 @@ export const DEFAULT_SETTINGS: PDF2MDSettings = {
 	currentPrompt: DEFAULT_PROMPTS[0].content,
 	savedPrompts: [],
 	anthropicModels: [
+		'claude-3-7-sonnet-4-20250514',
+		'claude-3-opus-4-20250514',
 		'claude-3-5-sonnet-20241022',
 		'claude-3-5-sonnet-20240620',
 		'claude-3-5-haiku-20241022',
@@ -72,5 +76,7 @@ export const DEFAULT_SETTINGS: PDF2MDSettings = {
 	outputFolder: '',
 	enableWatching: false,
 	filenamePattern: '{{basename}}',
-	embedPDF: false
+	embedPDF: false,
+	moveProcessedPDFs: false,
+	processedPDFFolder: 'Processed PDFs'
 }

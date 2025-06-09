@@ -134,6 +134,11 @@ export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[]
                     await plugin.app.vault.modify(existingFile as TFile, finalMarkdown);
                     new Notice('Markdown file updated successfully');
                     console.log('[PDF2MD] Step 4 complete: File updated successfully');
+                    
+                    // Step 5: Move processed PDF if enabled
+                    if (plugin.settings.moveProcessedPDFs && plugin.settings.processedPDFFolder) {
+                        await moveProcessedPDF(plugin, sourceFile);
+                    }
                 }
             ).open();
         } else {
@@ -156,6 +161,11 @@ export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[]
             await plugin.app.vault.create(finalPath, finalMarkdown);
             new Notice('Markdown file created successfully');
             console.log(`[PDF2MD] Step 4 complete: File created at ${finalPath}`);
+        }
+        
+        // Step 5: Move processed PDF if enabled
+        if (plugin.settings.moveProcessedPDFs && plugin.settings.processedPDFFolder) {
+            await moveProcessedPDF(plugin, sourceFile);
         }
         
         console.log('[PDF2MD] Processing workflow completed successfully');
@@ -185,5 +195,45 @@ export async function postProcessMarkdown(plugin: PDF2MDPlugin, markdown: string
     } catch (error) {
         console.error('[PDF2MD] Post-processing error:', error);
         throw error;
+    }
+}
+
+async function moveProcessedPDF(plugin: PDF2MDPlugin, sourceFile: TFile) {
+    try {
+        console.log('[PDF2MD] Step 5: Moving processed PDF...');
+        
+        const processedFolder = plugin.settings.processedPDFFolder;
+        
+        // Ensure the processed PDF folder exists
+        const folderExists = await plugin.app.vault.adapter.exists(processedFolder);
+        if (!folderExists) {
+            await plugin.app.vault.createFolder(processedFolder);
+            console.log(`[PDF2MD] Created folder: ${processedFolder}`);
+        }
+        
+        // Generate the new path for the PDF
+        const newPath = `${processedFolder}/${sourceFile.name}`;
+        
+        // Check if a file with the same name already exists in the destination
+        let finalPath = newPath;
+        let counter = 1;
+        
+        while (await plugin.app.vault.adapter.exists(finalPath)) {
+            const nameWithoutExt = sourceFile.basename;
+            const extension = sourceFile.extension;
+            finalPath = `${processedFolder}/${nameWithoutExt} ${counter}.${extension}`;
+            counter++;
+            console.log(`[PDF2MD] File exists, trying: ${finalPath}`);
+        }
+        
+        // Move the file
+        await plugin.app.fileManager.renameFile(sourceFile, finalPath);
+        
+        console.log(`[PDF2MD] Step 5 complete: PDF moved to ${finalPath}`);
+        new Notice(`PDF moved to ${processedFolder}`);
+        
+    } catch (error) {
+        console.error('[PDF2MD] Error moving processed PDF:', error);
+        new Notice('Warning: Failed to move processed PDF to designated folder');
     }
 }
