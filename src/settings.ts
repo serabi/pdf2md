@@ -38,6 +38,8 @@ function initializeDefaultPrompts(settings: PDF2MDSettings): void {
 
 function migrateAnthropicModels(settings: PDF2MDSettings): void {
 	const latestAnthropicModels = [
+		'claude-sonnet-4-20250514',
+		'claude-opus-4-20250514',
 		'claude-3-5-sonnet-20241022',
 		'claude-3-5-sonnet-20240620',
 		'claude-3-5-haiku-20241022',
