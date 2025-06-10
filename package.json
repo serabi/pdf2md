@@ -1,6 +1,6 @@
 {
 	"name": "pdf2md-plugin",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"description": "Convert PDF documents to structured Markdown using AI (Anthropic Claude or Ollama)",
 	"main": "main.js",
 	"scripts": {
