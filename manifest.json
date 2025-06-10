@@ -1,7 +1,7 @@
 {
 	"id": "pdf2md-plugin",
 	"name": "PDF To Markdown Converter",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"minAppVersion": "0.15.0",
 	"description": "Convert PDF documents to structured Markdown using AI (Anthropic Claude or Ollama). Extract text from PDFs and transform them into clean, well-organized Markdown notes for your vault.",
 	"author": "PDF2MD Development Team",
