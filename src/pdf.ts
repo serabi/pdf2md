@@ -1,5 +1,5 @@
 import { Notice } from 'obsidian';
-import { PDFDocumentProxy } from './types';
+import { PDFDocumentProxy, PDF2MDSettings } from './types';
 import { sanitizePath } from './utils';
 
 declare global {
@@ -387,7 +387,7 @@ export async function loadPDFAlternative(arrayBuffer: ArrayBuffer): Promise<PDFD
     return pdf;
 }
 
-export async function extractImagesFromPDF(arrayBuffer: ArrayBuffer): Promise<string[]> {
+export async function extractImagesFromPDF(arrayBuffer: ArrayBuffer, settings?: PDF2MDSettings): Promise<string[]> {
     console.log('[PDF2MD] Starting PDF image extraction with direct pdftoppm...');
     try {
         // Save PDF to temporary file
@@ -416,15 +416,25 @@ export async function extractImagesFromPDF(arrayBuffer: ArrayBuffer): Promise<st
         try {
             console.log('[PDF2MD] Running pdftoppm directly...');
             
-            // Run pdftoppm command directly
-            const pdftoppmPath = '/opt/homebrew/bin/pdftoppm';
-            const args = [
-                '-png',              // Output PNG format
-                '-r', '200',         // 200 DPI resolution
-                '-scale-to', '2048', // Scale to max 2048px
-                tempPdfPath,         // Input PDF
-                outputPrefix         // Output prefix
-            ];
+            // Resolve pdftoppm path
+            const pdftoppmPath = await resolvePdftoppmPath(settings?.popplerPdftoppmPath);
+            const useFormat = (settings?.pdfImageFormat ?? 'png').toLowerCase();
+            const dpi = Math.max(50, Math.min(600, settings?.pdfImageDpi ?? 200));
+            const maxWidth = Math.max(256, Math.min(4096, settings?.pdfImageMaxWidth ?? 2048));
+            const jpegQuality = Math.max(1, Math.min(100, settings?.pdfJpegQuality ?? 85));
+
+            const args: string[] = [];
+            if (useFormat === 'jpeg') {
+                args.push('-jpeg');
+                // Try to set JPEG quality if supported
+                args.push('-jpegopt', `quality=${jpegQuality}`);
+            } else {
+                args.push('-png');
+            }
+            args.push('-r', String(dpi));
+            args.push('-scale-to', String(maxWidth));
+            args.push(tempPdfPath);
+            args.push(outputPrefix);
             
             console.log(`[PDF2MD] Executing: ${pdftoppmPath} ${args.join(' ')}`);
             
@@ -460,15 +470,16 @@ export async function extractImagesFromPDF(arrayBuffer: ArrayBuffer): Promise<st
                 });
             });
             
-            // Find all generated PNG files
-            console.log('[PDF2MD] Looking for generated PNG files...');
+            // Find all generated image files
+            console.log('[PDF2MD] Looking for generated image files...');
             const files = await fs.readdir(tempDir);
-            const outputFiles = files.filter((f: string) => f.startsWith(path.basename(outputPrefix)) && f.endsWith('.png'));
+            const ext = useFormat === 'jpeg' ? '.jpg' : '.png';
+            const outputFiles = files.filter((f: string) => f.startsWith(path.basename(outputPrefix)) && f.endsWith(ext));
             outputFiles.sort(); // Ensure correct page order
             
-            console.log(`[PDF2MD] Found ${outputFiles.length} PNG files: ${outputFiles.join(', ')}`);
+            console.log(`[PDF2MD] Found ${outputFiles.length} ${useFormat.toUpperCase()} files: ${outputFiles.join(', ')}`);
             
-            // Read each PNG file and convert to base64
+            // Read each image file and convert to base64
             const images: string[] = [];
             for (let i = 0; i < outputFiles.length; i++) {
                 const filename = outputFiles[i];
@@ -478,7 +489,8 @@ export async function extractImagesFromPDF(arrayBuffer: ArrayBuffer): Promise<st
                     // Read the image file
                     const imageBuffer = await fs.readFile(filePath);
                     const base64 = imageBuffer.toString('base64');
-                    const dataUrl = `data:image/png;base64,${base64}`;
+                    const mime = useFormat === 'jpeg' ? 'image/jpeg' : 'image/png';
+                    const dataUrl = `data:${mime};base64,${base64}`;
                     images.push(dataUrl);
                     
                     console.log(`[PDF2MD] Page ${i + 1}: ${filename} (${imageBuffer.length} bytes) → ${base64.length} chars base64 → ${dataUrl.length} chars data URL`);
@@ -510,13 +522,93 @@ export async function extractImagesFromPDF(arrayBuffer: ArrayBuffer): Promise<st
         
     } catch (error) {
         console.error('[PDF2MD] PDF image extraction error:', error);
-        console.error('[PDF2MD] Error details:', error.stack);
-        
-        // Provide helpful error messages based on the error type
-        if (error.message.includes('ENOENT') || error.message.includes('pdftoppm')) {
-            throw new Error(`PDF conversion failed: pdftoppm command not found. Please install poppler:\n\nmacOS: brew install poppler\nLinux: apt-get install poppler-utils\nWindows: Download from poppler website\n\nOriginal error: ${error.message}`);
-        } else {
-            throw new Error(`Failed to extract images from PDF: ${error.message}`);
+        console.error('[PDF2MD] Error details:', (error as any).stack);
+        const errMsg = (error as any).message || '';
+        const shouldFallback = errMsg.includes('ENOENT') || errMsg.includes('pdftoppm');
+        if (shouldFallback) {
+            console.warn('[PDF2MD] Falling back to PDF.js renderer for image extraction');
+            try {
+                return await extractImagesWithPDFJS(arrayBuffer, settings);
+            } catch (fbErr) {
+                console.error('[PDF2MD] PDF.js fallback failed:', fbErr);
+                throw new Error(`PDF conversion failed: Poppler not found and PDF.js fallback also failed. Original error: ${errMsg}`);
+            }
         }
+        throw new Error(`Failed to extract images from PDF: ${(error as any).message}`);
     }
+}
+
+async function resolvePdftoppmPath(userPath?: string): Promise<string> {
+    const { spawn } = require('child_process');
+    const tryExec = (cmd: string): Promise<boolean> => new Promise((resolve) => {
+        try {
+            const child = spawn(cmd, ['-h']);
+            let done = false;
+            child.on('error', () => resolve(false));
+            child.on('close', (code: number) => resolve(code === 0 || code === 1));
+            setTimeout(() => { if (!done) resolve(false); }, 2000);
+        } catch {
+            resolve(false);
+        }
+    });
+
+    const candidates: string[] = [];
+    if (userPath && userPath.trim()) candidates.push(userPath.trim());
+    candidates.push('pdftoppm');
+    const isWin = process.platform === 'win32';
+    if (isWin) {
+        candidates.push('C://Program Files//poppler//bin//pdftoppm.exe');
+        candidates.push('C://Program Files (x86)//poppler//bin//pdftoppm.exe');
+    } else if (process.platform === 'darwin') {
+        candidates.push('/opt/homebrew/bin/pdftoppm');
+        candidates.push('/usr/local/bin/pdftoppm');
+        candidates.push('/usr/bin/pdftoppm');
+    } else {
+        candidates.push('/usr/bin/pdftoppm');
+        candidates.push('/usr/local/bin/pdftoppm');
+    }
+
+    for (const c of candidates) {
+        if (await tryExec(c)) return c;
+    }
+    // Default to 'pdftoppm' and let caller handle failure
+    return 'pdftoppm';
+}
+
+async function extractImagesWithPDFJS(arrayBuffer: ArrayBuffer, settings?: PDF2MDSettings): Promise<string[]> {
+    const pdfjsLib = require('pdfjs-dist');
+    // Ensure worker configured
+    try { configurePDFJSWorker(pdfjsLib); } catch {}
+
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const loadingTask = pdfjsLib.getDocument({
+        data: uint8Array,
+        verbosity: 0,
+        useWorkerFetch: false,
+        disableAutoFetch: true,
+        disableStream: true
+    });
+
+    const pdf: PDFDocumentProxy = await loadingTask.promise;
+
+    const maxWidth = Math.max(256, Math.min(4096, settings?.pdfImageMaxWidth ?? 2048));
+    const format = (settings?.pdfImageFormat ?? 'png').toLowerCase();
+    const quality = Math.max(0.01, Math.min(1, (settings?.pdfJpegQuality ?? 85) / 100));
+
+    const images: string[] = [];
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await (pdf as any).getPage(pageNum);
+        const viewport0 = page.getViewport({ scale: 1 });
+        const scale = maxWidth / viewport0.width;
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        await page.render({ canvasContext: context, viewport }).promise;
+        const mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+        const dataUrl = canvas.toDataURL(mime, format === 'jpeg' ? quality : undefined);
+        images.push(dataUrl);
+    }
+    return images;
 }

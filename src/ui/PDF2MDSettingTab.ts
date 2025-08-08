@@ -142,14 +142,15 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 						}
 					}));
 
-			// Model Selection for Ollama
+			// Model Selection for Ollama (with simple vision labeling)
 			if (this.plugin.settings.ollamaModels.length > 0) {
 				new Setting(containerEl)
 					.setName('Ollama Model')
-					.setDesc('Select the model to use')
+					.setDesc('Select the model to use (vision-capable models recommended for images)')
 					.addDropdown(dropdown => {
+						const labelVision = (m: string) => /llava|bakllava|moondream|qwen[- ]?vl|qwenvl|minicpm|yi[- ]?vl|phi-3-vision/i.test(m) ? `${m} (vision)` : m;
 						this.plugin.settings.ollamaModels.forEach(model => {
-							dropdown.addOption(model, model);
+							dropdown.addOption(model, labelVision(model));
 						});
 						dropdown
 							.setValue(this.plugin.settings.selectedModel)
@@ -158,6 +159,16 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 								await this.plugin.saveSettings();
 						});
 					});
+
+				// Warning if non-vision model selected and user hasn't overridden
+				const selected = this.plugin.settings.selectedModel || '';
+				const isVision = /llava|bakllava|moondream|qwen[- ]?vl|qwenvl|minicpm|yi[- ]?vl|phi-3-vision/i.test(selected);
+				if (!isVision && !this.plugin.settings.ollamaAssumeVision) {
+					containerEl.createEl('p', {
+						text: `Selected model may not support images. Enable "Assume model supports vision" above to force, or choose a vision-capable model (e.g., llava).`,
+						cls: 'setting-item-description mod-warning'
+					});
+				}
 			} else {
 				containerEl.createEl('p', { 
 					text: 'No Ollama models found. Click "Refresh" above to load models from your Ollama instance.',
@@ -224,6 +235,79 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}));
 		}
+
+		// PDF image extraction controls
+		containerEl.createEl('h3', { text: 'PDF Image Extraction' });
+
+		new Setting(containerEl)
+			.setName('DPI')
+			.setDesc('Dots per inch for page rasterization (50-600)')
+			.addText(text => text
+				.setPlaceholder('200')
+				.setValue(String(this.plugin.settings.pdfImageDpi ?? 200))
+				.onChange(async (value) => {
+					const num = Math.max(50, Math.min(600, parseInt(value || '200', 10) || 200));
+					this.plugin.settings.pdfImageDpi = num;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Max width (px)')
+			.setDesc('Scale images to this maximum width (256-4096)')
+			.addText(text => text
+				.setPlaceholder('2048')
+				.setValue(String(this.plugin.settings.pdfImageMaxWidth ?? 2048))
+				.onChange(async (value) => {
+					const num = Math.max(256, Math.min(4096, parseInt(value || '2048', 10) || 2048));
+					this.plugin.settings.pdfImageMaxWidth = num;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Image format')
+			.setDesc('Choose PNG (lossless) or JPEG (smaller)')
+			.addDropdown(dropdown => dropdown
+				.addOption('png', 'PNG')
+				.addOption('jpeg', 'JPEG')
+				.setValue(this.plugin.settings.pdfImageFormat ?? 'png')
+				.onChange(async (value: 'png' | 'jpeg') => {
+					this.plugin.settings.pdfImageFormat = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('JPEG quality')
+			.setDesc('Applies when format is JPEG (1-100)')
+			.addText(text => text
+				.setPlaceholder('85')
+				.setValue(String(this.plugin.settings.pdfJpegQuality ?? 85))
+				.onChange(async (value) => {
+					const num = Math.max(1, Math.min(100, parseInt(value || '85', 10) || 85));
+					this.plugin.settings.pdfJpegQuality = num;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Poppler pdftoppm path (optional)')
+			.setDesc('If set, use this path to pdftoppm. Otherwise the system PATH and common locations are tried.')
+			.addText(text => text
+				.setPlaceholder('/usr/bin/pdftoppm or C\\\:\\Program Files\\poppler\\bin\\pdftoppm.exe')
+				.setValue(this.plugin.settings.popplerPdftoppmPath || '')
+				.onChange(async (value) => {
+					this.plugin.settings.popplerPdftoppmPath = value.trim();
+					await this.plugin.saveSettings();
+				}))
+			.addButton(button => button
+				.setButtonText('Test Poppler')
+				.onClick(async () => {
+					try {
+						const ok = await (await import('../utils')).testPdftoppmPath(this.plugin.settings.popplerPdftoppmPath);
+						if (ok) new Notice('Poppler test succeeded (pdftoppm available)');
+						else new Notice('Poppler test failed: pdftoppm not found');
+					} catch (e) {
+						new Notice('Poppler test failed');
+					}
+				}));
 
 		// Prompt Selection
 		containerEl.createEl('h3', { text: 'Prompt Configuration' });

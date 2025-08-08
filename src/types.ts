@@ -37,6 +37,13 @@ export interface PDF2MDSettings {
 	ollamaRetryDelayMs?: number;
 	ollamaAssumeVision?: boolean;
 	ollamaEnableStreaming?: boolean;
+	ollamaMaxRequestChars?: number;
+	// PDF image extraction controls
+	pdfImageDpi?: number;
+	pdfImageMaxWidth?: number;
+	pdfImageFormat?: 'png' | 'jpeg';
+	pdfJpegQuality?: number;
+	popplerPdftoppmPath?: string;
 }
 
 export interface SavedPrompt {
@@ -94,5 +101,13 @@ export const DEFAULT_SETTINGS: PDF2MDSettings = {
 	ollamaRetryCount: 2,
 	ollamaRetryDelayMs: 1000,
 	ollamaAssumeVision: false,
-	ollamaEnableStreaming: false
+	ollamaEnableStreaming: false,
+	ollamaMaxRequestChars: 900000,
+	// PDF image extraction defaults
+	pdfImageDpi: 200,
+	pdfImageMaxWidth: 2048,
+	pdfImageFormat: 'png',
+	pdfJpegQuality: 85
+	,
+	popplerPdftoppmPath: ''
 }

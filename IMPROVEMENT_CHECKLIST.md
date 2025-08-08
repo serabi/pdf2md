@@ -20,22 +20,23 @@
   - [x] Add "Test connection" button that validates URL, model availability, and vision capability
   - [x] Auto-normalize URL (ensure protocol, trailing slashes)
 - [ ] Request sizing and image controls
-  - [ ] Configurable DPI, max width, and output format (PNG/JPEG with quality)
-  - [ ] Estimate payload size and split requests if over threshold
+  - [x] Configurable DPI, max width, and output format (PNG/JPEG with quality)
+  - [x] Estimate payload size and split requests if over threshold
 - [ ] Error handling & retries
   - [x] Add retry with backoff for transient network errors
-  - [ ] Specific user notices for: connection refused, model not found, model incompatible with images
-- [ ] Streaming & progress
-  - [ ] Attempt `stream: true` support; if not feasible, implement page-by-page progress updates
-  - [ ] Update progress modal to show per-page/chunk progress
+  - [x] Specific user notices for: connection refused, model not found, model incompatible with images
+ - [ ] Streaming & progress
+   - [ ] Attempt `stream: true` support
+   - [x] Implement page-by-page/chunk progress updates
+   - [x] Update progress modal to show per-page/chunk progress
 - [ ] Model selection UX
-  - [ ] Filter and label vision-capable models (llava, bakllava, etc.)
-  - [ ] Add override: "Force send images to this model"
+  - [x] Filter and label vision-capable models (llava, bakllava, etc.)
+  - [x] Add override: "Force send images to this model"
 - [ ] Text-only fallback
   - [ ] If image processing fails or model lacks vision, optionally run PDF text extraction + formatting prompt
-- [ ] Cross‑platform extraction
-  - [ ] Replace hardcoded `/opt/homebrew/bin/pdftoppm` with PATH lookup and configurable binary path
-  - [ ] If Poppler missing, fallback to PDF.js rendering path
+ - [ ] Cross‑platform extraction
+  - [x] Replace hardcoded `/opt/homebrew/bin/pdftoppm` with PATH lookup and configurable binary path
+  - [x] If Poppler missing, fallback to PDF.js rendering path
 
 ### Add OpenRouter provider (broader model support)
 - [ ] Settings
@@ -52,7 +53,7 @@
 
 ### PDF conversion reliability and options
 - [ ] Poppler improvements
-  - [ ] Configurable DPI, max width, format (PNG/JPEG + quality)
+  - [x] Configurable DPI, max width, format (PNG/JPEG + quality)
   - [ ] Page range selection in modal (e.g., `1-5,7,10-`)
 - [ ] PDF.js fallback renderer
   - [ ] Implement stable canvas render path in `src/pdf.ts` for environments without Poppler
@@ -74,6 +75,9 @@
   - [ ] Debounce events and ignore partial writes
   - [ ] Concurrency limit for batch processing
   - [ ] Optional filename filters (e.g., only `_scan.pdf`)
+ - [ ] Status notifications
+   - [ ] Add a setting to enable/disable step popup notices
+   - [ ] Respect setting during processing (modal still shows progress)
 
 ### Security and privacy
 - [ ] Add "Verbose logging" toggle; default to minimal logs

@@ -2,6 +2,7 @@ import { TFile } from 'obsidian';
 import { PDF2MDSettings } from './types';
 import { DefaultPrompt, SavedPrompt } from './types';
 import PDF2MDPlugin from '../main';
+import { requestUrl } from 'obsidian';
 
 export function getPromptById(plugin: PDF2MDPlugin, id: string): DefaultPrompt | SavedPrompt | null {
 	// Check default prompts first
@@ -75,5 +76,49 @@ export function getOutputPath(settings: PDF2MDSettings, originalFile: TFile, bas
         return originalFile.parent ? 
             `${originalFile.parent.path}/${baseName}.md` : 
             `${baseName}.md`;
+    }
+}
+
+export async function testPdftoppmPath(userPath?: string): Promise<boolean> {
+    try {
+        const { spawn } = require('child_process');
+        const candidatePaths: string[] = [];
+        if (userPath && userPath.trim()) candidatePaths.push(userPath.trim());
+        candidatePaths.push('pdftoppm');
+        const isWin = process.platform === 'win32';
+        if (isWin) {
+            candidatePaths.push('C://Program Files//poppler//bin//pdftoppm.exe');
+            candidatePaths.push('C://Program Files (x86)//poppler//bin//pdftoppm.exe');
+        } else if (process.platform === 'darwin') {
+            candidatePaths.push('/opt/homebrew/bin/pdftoppm');
+            candidatePaths.push('/usr/local/bin/pdftoppm');
+            candidatePaths.push('/usr/bin/pdftoppm');
+        } else {
+            candidatePaths.push('/usr/bin/pdftoppm');
+            candidatePaths.push('/usr/local/bin/pdftoppm');
+        }
+
+        for (const p of candidatePaths) {
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    const child = spawn(p, ['-h']);
+                    let resolved = false;
+                    child.on('error', () => reject(new Error('spawn error')));
+                    child.on('close', (code: number) => {
+                        if (code === 0 || code === 1) {
+                            resolved = true;
+                            resolve();
+                        } else {
+                            reject(new Error('nonzero'));
+                        }
+                    });
+                    setTimeout(() => { if (!resolved) reject(new Error('timeout')); }, 3000);
+                });
+                return true;
+            } catch {}
+        }
+        return false;
+    } catch {
+        return false;
     }
 }

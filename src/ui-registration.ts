@@ -34,7 +34,7 @@ function registerCommands(plugin: PDF2MDPlugin): void {
 			const file = plugin.app.workspace.getActiveFile();
 			if (file && file.extension === 'pdf') {
 				if (!checking) {
-					processPDF(plugin, file);
+					new PDFProcessModal(plugin.app, plugin, file).open();
 				}
 				return true;
 			}

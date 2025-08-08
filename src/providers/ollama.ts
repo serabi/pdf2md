@@ -63,12 +63,24 @@ export const OllamaProvider: Provider = {
         return img.replace(/^data:image\/[^;]+;base64,/, '');
       });
 
+      // Enforce max payload size by truncating images if necessary
+      const maxChars = Math.max(200000, settings.ollamaMaxRequestChars ?? 900000);
+      const promptPart = prompt || '';
+      let payloadImages = processedImages.slice();
+      while (payloadImages.length > 0) {
+        const estimatedSize = JSON.stringify({ model: settings.selectedModel, prompt: promptPart, images: payloadImages, stream: false }).length;
+        if (estimatedSize <= maxChars) break;
+        // Drop last image if too large; fall back to single image if needed
+        if (payloadImages.length === 1) break;
+        payloadImages = payloadImages.slice(0, payloadImages.length - 1);
+      }
+
       const requestBody = {
         model: settings.selectedModel,
         prompt: chunk.length > 1
           ? `${prompt}\n\nThe following images are consecutive pages for this document chunk. Preserve their order.`
           : prompt,
-        images: processedImages,
+        images: payloadImages,
         stream: Boolean(settings.ollamaEnableStreaming)
       } as any;
 

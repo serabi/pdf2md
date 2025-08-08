@@ -8,7 +8,7 @@ import { getOutputPath, sanitizeFileName, arrayBufferToBase64, generateFilename 
 
 export async function processPDF(plugin: PDF2MDPlugin, file: TFile) {
     try {
-        new Notice('Processing PDF...');
+        new Notice('PDF2MD: Step 1 — Extracting page images');
         if (plugin.settings.selectedProvider === 'anthropic' && !plugin.settings.anthropicApiKey) {
             new Notice('Please set your Anthropic API key in settings');
             return;
@@ -17,7 +17,7 @@ export async function processPDF(plugin: PDF2MDPlugin, file: TFile) {
         
         // Step 1: Extract images from PDF
         console.log('[PDF2MD] Step 1: Extracting images from PDF...');
-        const pdfImages = await extractImagesFromPDF(arrayBuffer);
+        const pdfImages = await extractImagesFromPDF(arrayBuffer, plugin.settings);
         if (!pdfImages || pdfImages.length === 0) {
             console.error('[PDF2MD] Failed to extract images from PDF');
             new Notice('Failed to extract images from PDF. Try using the "Process Images" option instead.', 8000);
@@ -81,6 +81,7 @@ export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[]
     try {
         // Step 2: Initial AI processing with main prompt
         console.log('[PDF2MD] Step 2: Initial AI processing with provider:', plugin.settings.selectedProvider);
+        new Notice(`PDF2MD: Step 2 — AI processing with ${plugin.settings.selectedProvider}`);
         reportProgress({ phase: 'status', message: 'Sending images to AI provider' });
         const initialMarkdown = await processWithAI(plugin.settings, images, plugin.settings.currentPrompt);
         if (!initialMarkdown) {
@@ -95,6 +96,7 @@ export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[]
         // Step 3: Post-processing (if enabled)
         if (plugin.settings.enablePostProcessing) {
             console.log('[PDF2MD] Step 3: Post-processing markdown...');
+            new Notice('PDF2MD: Step 3 — Post-processing');
             reportProgress({ phase: 'status', message: 'Post-processing markdown' });
             try {
                 const postProcessedMarkdown = await postProcessMarkdown(plugin, finalMarkdown);
@@ -120,6 +122,7 @@ export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[]
         
         // Step 4: Create final markdown file
         console.log('[PDF2MD] Step 4: Creating final markdown file...');
+        new Notice('PDF2MD: Step 4 — Writing output');
         reportProgress({ phase: 'status', message: 'Writing output file' });
         const generatedFilename = generateFilename(plugin.settings.filenamePattern, sourceFile.basename);
         const sanitizedBasename = sanitizeFileName(generatedFilename);
