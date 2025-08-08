@@ -1,5 +1,8 @@
 # vscode
 .vscode 
+CLAUDE.md
+.claude/*
+.claude
 
 # Intellij
 *.iml

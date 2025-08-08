@@ -3,7 +3,7 @@ import PDF2MDPlugin from '../../main';
 import { ConfirmModal } from './ConfirmModal';
 import { PromptEditModal } from './PromptEditModal';
 import { PromptViewModal } from './PromptViewModal';
-import { SavedPrompt, DefaultPrompt, DEFAULT_PROMPTS } from '../types';
+import { SavedPrompt, DefaultPrompt, DEFAULT_PROMPTS, MODEL_DISPLAY_NAMES } from '../types';
 import { loadOllamaModels } from '../ai';
 import { getAllPrompts, getPromptById } from '../utils';
 import { setupFolderWatcher } from '../watcher';
@@ -89,7 +89,8 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 				.setDesc('Select the Claude model to use')
 				.addDropdown(dropdown => {
 					this.plugin.settings.anthropicModels.forEach(model => {
-						dropdown.addOption(model, model);
+						const displayName = MODEL_DISPLAY_NAMES[model] || model;
+						dropdown.addOption(model, displayName);
 					});
 					dropdown
 						.setValue(this.plugin.settings.selectedModel)
@@ -111,12 +112,12 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}));
 
-			// Refresh Ollama Models button
+			// Refresh Ollama Models / Test Connection
 			new Setting(containerEl)
-				.setName('Refresh Models')
-				.setDesc('Load available models from Ollama')
+				.setName('Ollama Tools')
+				.setDesc('Manage Ollama connectivity and models')
 				.addButton(button => button
-					.setButtonText('Refresh')
+					.setButtonText('Refresh Models')
 					.onClick(async () => {
 						const success = await loadOllamaModels(this.plugin);
 						if (success) {
@@ -125,6 +126,20 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 							new Notice('Failed to connect to Ollama. Please ensure Ollama is running at ' + this.plugin.settings.ollamaUrl);
 						}
 						this.display();
+					}))
+				.addButton(button => button
+					.setButtonText('Test Connection')
+					.onClick(async () => {
+						// Use provider testConnection via ai router
+						try {
+							const { getProvider } = await import('../providers');
+							const provider = getProvider('ollama');
+							const ok = provider.testConnection ? await provider.testConnection(this.plugin) : false;
+							if (ok) new Notice('Ollama connection OK');
+							else new Notice('Ollama connection failed');
+						} catch (e) {
+							new Notice('Ollama connection test unavailable');
+						}
 					}));
 
 			// Model Selection for Ollama
@@ -141,7 +156,7 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 							.onChange(async (value) => {
 								this.plugin.settings.selectedModel = value;
 								await this.plugin.saveSettings();
-							});
+						});
 					});
 			} else {
 				containerEl.createEl('p', { 
@@ -149,6 +164,65 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 					cls: 'setting-item-description mod-warning'
 				});
 			}
+
+			// Ollama advanced settings
+			containerEl.createEl('h3', { text: 'Ollama Advanced Settings' });
+
+			new Setting(containerEl)
+				.setName('Images per request')
+				.setDesc('How many images to send per request (many models only support 1).')
+				.addText(text => text
+					.setPlaceholder('1')
+					.setValue(String(this.plugin.settings.ollamaImagesPerRequest ?? 1))
+					.onChange(async (value) => {
+						const num = Math.max(1, parseInt(value || '1', 10) || 1);
+						this.plugin.settings.ollamaImagesPerRequest = num;
+						await this.plugin.saveSettings();
+					}));
+
+			new Setting(containerEl)
+				.setName('Retry attempts')
+				.setDesc('Number of retries on transient errors')
+				.addText(text => text
+					.setPlaceholder('2')
+					.setValue(String(this.plugin.settings.ollamaRetryCount ?? 2))
+					.onChange(async (value) => {
+						const num = Math.max(0, parseInt(value || '2', 10) || 2);
+						this.plugin.settings.ollamaRetryCount = num;
+						await this.plugin.saveSettings();
+					}));
+
+			new Setting(containerEl)
+				.setName('Retry delay (ms)')
+				.setDesc('Delay between retries in milliseconds')
+				.addText(text => text
+					.setPlaceholder('1000')
+					.setValue(String(this.plugin.settings.ollamaRetryDelayMs ?? 1000))
+					.onChange(async (value) => {
+						const num = Math.max(0, parseInt(value || '1000', 10) || 1000);
+						this.plugin.settings.ollamaRetryDelayMs = num;
+						await this.plugin.saveSettings();
+					}));
+
+			new Setting(containerEl)
+				.setName('Assume model supports vision')
+				.setDesc('Treat the selected model as vision-capable even if name detection fails')
+				.addToggle(toggle => toggle
+					.setValue(Boolean(this.plugin.settings.ollamaAssumeVision))
+					.onChange(async (value) => {
+						this.plugin.settings.ollamaAssumeVision = value;
+						await this.plugin.saveSettings();
+					}));
+
+			new Setting(containerEl)
+				.setName('Enable streaming (experimental)')
+				.setDesc('Request streaming responses from Ollama (UI updates not yet streaming)')
+				.addToggle(toggle => toggle
+					.setValue(Boolean(this.plugin.settings.ollamaEnableStreaming))
+					.onChange(async (value) => {
+						this.plugin.settings.ollamaEnableStreaming = value;
+						await this.plugin.saveSettings();
+					}));
 		}
 
 		// Prompt Selection

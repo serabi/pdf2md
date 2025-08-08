@@ -1,6 +1,7 @@
 import { App, Modal, Notice, TFile } from 'obsidian';
 import PDF2MDPlugin from '../../main';
 import { processPDF } from '../processing';
+import { setProgressReporter, clearProgressReporter, ProgressUpdate } from '../progress';
 
 export class PDFProcessModal extends Modal {
 	plugin: PDF2MDPlugin;
@@ -17,6 +18,23 @@ export class PDFProcessModal extends Modal {
 		contentEl.addClass('pdf2md-modal');
 
 		contentEl.createEl('h2', { text: 'Convert PDF to Markdown' });
+
+		// Live progress UI
+		const progressContainer = contentEl.createDiv('pdf2md-progress');
+		const progressLabel = progressContainer.createEl('div', { text: 'Idle' });
+		const progressBarWrapper = progressContainer.createEl('div', { cls: 'progress-bar-wrapper' });
+		const progressBar = progressBarWrapper.createEl('div', { cls: 'progress-bar' });
+		progressBar.style.width = '0%';
+
+		setProgressReporter((u: ProgressUpdate) => {
+			if (u.phase === 'chunk' && u.total && u.current) {
+				progressLabel.setText(`${u.message}`);
+				const pct = Math.min(100, Math.max(0, Math.round((u.current / u.total) * 100)));
+				progressBar.style.width = pct + '%';
+			} else {
+				progressLabel.setText(u.message);
+			}
+		});
 
 		// File selection
 		const fileInputContainer = contentEl.createDiv('file-input-container');
@@ -77,5 +95,6 @@ export class PDFProcessModal extends Modal {
 	onClose() {
 		const { contentEl } = this;
 		contentEl.empty();
+		clearProgressReporter();
 	}
 }

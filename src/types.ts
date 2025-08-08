@@ -31,6 +31,12 @@ export interface PDF2MDSettings {
 	embedPDF: boolean;
 	moveProcessedPDFs: boolean;
 	processedPDFFolder: string;
+	// Ollama advanced settings
+	ollamaImagesPerRequest?: number;
+	ollamaRetryCount?: number;
+	ollamaRetryDelayMs?: number;
+	ollamaAssumeVision?: boolean;
+	ollamaEnableStreaming?: boolean;
 }
 
 export interface SavedPrompt {
@@ -50,23 +56,26 @@ export interface DefaultPrompt {
 // Load default prompts from external JSON file
 export const DEFAULT_PROMPTS: DefaultPrompt[] = promptsData.defaultPrompts;
 
+// Model display names for user-friendly interface
+export const MODEL_DISPLAY_NAMES: Record<string, string> = {
+	'claude-sonnet-4-0': 'Claude 4 Sonnet (latest)',
+	'claude-opus-4-0': 'Claude 4 Opus (latest)',
+	'claude-3-7-sonnet-latest': 'Claude 3.7 Sonnet (latest)',
+	'claude-3-5-sonnet-latest': 'Claude 3.5 Sonnet (latest)'
+};
+
 export const DEFAULT_SETTINGS: PDF2MDSettings = {
 	anthropicApiKey: '',
 	ollamaUrl: 'http://localhost:11434',
-	selectedModel: 'claude-3-5-sonnet-20241022',
+	selectedModel: 'claude-sonnet-4-0',
 	selectedProvider: 'anthropic',
 	currentPrompt: DEFAULT_PROMPTS[0].content,
 	savedPrompts: [],
 	anthropicModels: [
-		'claude-sonnet-4-20250514',
-		'claude-opus-4-20250514',
-		'claude-3-7-sonnet-20250219',
-		'claude-3-5-sonnet-20241022',
-		'claude-3-5-sonnet-20240620',
-		'claude-3-5-haiku-20241022',
-		'claude-3-opus-20240229',
-		'claude-3-sonnet-20240229',
-		'claude-3-haiku-20240307'
+		'claude-sonnet-4-0',
+		'claude-opus-4-0',
+		'claude-3-7-sonnet-latest',
+		'claude-3-5-sonnet-latest'
 	],
 	ollamaModels: [],
 	selectedPromptId: 'image-text-extraction',
@@ -79,5 +88,11 @@ export const DEFAULT_SETTINGS: PDF2MDSettings = {
 	filenamePattern: '{{basename}}',
 	embedPDF: false,
 	moveProcessedPDFs: false,
-	processedPDFFolder: 'Processed PDFs'
+	processedPDFFolder: 'Processed PDFs',
+	// Ollama defaults
+	ollamaImagesPerRequest: 1,
+	ollamaRetryCount: 2,
+	ollamaRetryDelayMs: 1000,
+	ollamaAssumeVision: false,
+	ollamaEnableStreaming: false
 }

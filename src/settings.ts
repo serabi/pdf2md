@@ -38,36 +38,45 @@ function initializeDefaultPrompts(settings: PDF2MDSettings): void {
 
 function migrateAnthropicModels(settings: PDF2MDSettings): void {
 	const latestAnthropicModels = [
-		'claude-sonnet-4-20250514',
-		'claude-opus-4-20250514',
-		'claude-3-7-sonnet-20250219',
-		'claude-3-5-sonnet-20241022',
-		'claude-3-5-sonnet-20240620',
-		'claude-3-5-haiku-20241022',
-		'claude-3-opus-20240229',
-		'claude-3-sonnet-20240229',
-		'claude-3-haiku-20240307'
+		'claude-sonnet-4-0',
+		'claude-opus-4-0',
+		'claude-3-7-sonnet-latest',
+		'claude-3-5-sonnet-latest'
 	];
 	
-	if (!settings.anthropicModels || settings.anthropicModels.length < latestAnthropicModels.length) {
-		console.log('[PDF2MD] Updating anthropic models list for existing installation');
+	// Always replace the entire array to ensure clean migration from old date-based models
+	const currentModels = settings.anthropicModels || [];
+	const hasOldModels = currentModels.some(model => 
+		model.includes('20240') || model.includes('20250') || model.includes('claude-3-haiku') || model.includes('claude-3-opus') || model.includes('claude-3-sonnet')
+	);
+	
+	if (!settings.anthropicModels || hasOldModels || !arraysEqual(currentModels, latestAnthropicModels)) {
+		console.log('[PDF2MD] Migrating to simplified anthropic models list');
 		settings.anthropicModels = [...latestAnthropicModels];
-	} else {
-		latestAnthropicModels.forEach(model => {
-			if (!settings.anthropicModels.includes(model)) {
-				console.log('[PDF2MD] Adding new model:', model);
-				settings.anthropicModels.unshift(model);
-			}
-		});
 	}
+}
+
+function arraysEqual(a: string[], b: string[]): boolean {
+	return a.length === b.length && a.every((val, i) => val === b[i]);
 }
 
 function validateSelectedModel(settings: PDF2MDSettings): void {
 	if (settings.selectedProvider === 'anthropic' && 
 		!settings.anthropicModels.includes(settings.selectedModel)) {
 		console.log('[PDF2MD] Selected model is invalid:', settings.selectedModel);
-		console.log('[PDF2MD] Updating to latest model:', settings.anthropicModels[0]);
-		settings.selectedModel = settings.anthropicModels[0];
+		// Migrate old date-based models to new aliases
+		if (settings.selectedModel.includes('claude-sonnet-4-')) {
+			settings.selectedModel = 'claude-sonnet-4-0';
+		} else if (settings.selectedModel.includes('claude-opus-4-')) {
+			settings.selectedModel = 'claude-opus-4-0';
+		} else if (settings.selectedModel.includes('claude-3-7-sonnet')) {
+			settings.selectedModel = 'claude-3-7-sonnet-latest';
+		} else if (settings.selectedModel.includes('claude-3-5-sonnet')) {
+			settings.selectedModel = 'claude-3-5-sonnet-latest';
+		} else {
+			console.log('[PDF2MD] Updating to latest model:', settings.anthropicModels[0]);
+			settings.selectedModel = settings.anthropicModels[0];
+		}
 	}
 }
 

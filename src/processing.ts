@@ -2,6 +2,7 @@ import { TFile, Notice } from 'obsidian';
 import { ConfirmModal } from './ui/ConfirmModal';
 import type PDF2MDPlugin from '../main';
 import { processWithAI } from './ai';
+import { reportProgress } from './progress';
 import { extractImagesFromPDF } from './pdf';
 import { getOutputPath, sanitizeFileName, arrayBufferToBase64, generateFilename } from './utils';
 
@@ -80,6 +81,7 @@ export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[]
     try {
         // Step 2: Initial AI processing with main prompt
         console.log('[PDF2MD] Step 2: Initial AI processing with provider:', plugin.settings.selectedProvider);
+        reportProgress({ phase: 'status', message: 'Sending images to AI provider' });
         const initialMarkdown = await processWithAI(plugin.settings, images, plugin.settings.currentPrompt);
         if (!initialMarkdown) {
             console.error('[PDF2MD] Failed initial AI processing');
@@ -93,6 +95,7 @@ export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[]
         // Step 3: Post-processing (if enabled)
         if (plugin.settings.enablePostProcessing) {
             console.log('[PDF2MD] Step 3: Post-processing markdown...');
+            reportProgress({ phase: 'status', message: 'Post-processing markdown' });
             try {
                 const postProcessedMarkdown = await postProcessMarkdown(plugin, finalMarkdown);
                 if (postProcessedMarkdown) {
@@ -117,6 +120,7 @@ export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[]
         
         // Step 4: Create final markdown file
         console.log('[PDF2MD] Step 4: Creating final markdown file...');
+        reportProgress({ phase: 'status', message: 'Writing output file' });
         const generatedFilename = generateFilename(plugin.settings.filenamePattern, sourceFile.basename);
         const sanitizedBasename = sanitizeFileName(generatedFilename);
         const mdFilePath = getOutputPath(plugin.settings, sourceFile, sanitizedBasename);
@@ -169,6 +173,7 @@ export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[]
         }
         
         console.log('[PDF2MD] Processing workflow completed successfully');
+        reportProgress({ phase: 'status', message: 'Done' });
     } catch (error) {
         console.error('[PDF2MD] Critical error in processPDF:', error);
         console.error('[PDF2MD] Error stack:', error.stack);
