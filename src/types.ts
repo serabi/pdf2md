@@ -20,6 +20,7 @@ export interface PDF2MDSettings {
 	savedPrompts: SavedPrompt[];
 	anthropicModels: string[];
 	ollamaModels: string[];
+	ollamaVisionModels?: string[];
 	selectedPromptId: string;
 	defaultPrompts: DefaultPrompt[];
 	postProcessingTemplate: string;
@@ -85,6 +86,7 @@ export const DEFAULT_SETTINGS: PDF2MDSettings = {
 		'claude-3-5-sonnet-latest'
 	],
 	ollamaModels: [],
+	ollamaVisionModels: [],
 	selectedPromptId: 'image-text-extraction',
 	defaultPrompts: DEFAULT_PROMPTS,
 	postProcessingTemplate: '---\ntags: [pdf2md, converted]\ndate: {{date}}\n---\n\n{{content}}',

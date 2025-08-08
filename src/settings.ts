@@ -10,7 +10,7 @@ export async function initializeSettings(plugin: PDF2MDPlugin): Promise<void> {
 	initializeDefaultPrompts(plugin.settings);
 	migrateAnthropicModels(plugin.settings);
 	validateSelectedModel(plugin.settings);
-	updateCurrentPrompt(plugin, plugin.settings);
+    updateCurrentPrompt(plugin, plugin.settings);
 	
 	await loadOllamaModelsIfConfigured(plugin);
 	setupWatcherIfEnabled(plugin);

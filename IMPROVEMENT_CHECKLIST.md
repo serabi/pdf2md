@@ -16,7 +16,7 @@
   - [x] If model supports multi-image, send multiple images; otherwise iterate per chunk and merge results
   - [x] Preserve page order with clear delimiters between chunks
 - [ ] Capability detection and health checks
-  - [ ] Implement capability probe via `/api/tags` and `/api/show` (if available) to tag vision support
+  - [x] Implement capability probe via `/api/tags` and `/api/show` (if available) to tag vision support
   - [x] Add "Test connection" button that validates URL, model availability, and vision capability
   - [x] Auto-normalize URL (ensure protocol, trailing slashes)
 - [ ] Request sizing and image controls
@@ -26,7 +26,7 @@
   - [x] Add retry with backoff for transient network errors
   - [x] Specific user notices for: connection refused, model not found, model incompatible with images
  - [ ] Streaming & progress
-   - [ ] Attempt `stream: true` support
+  - [x] Attempt `stream: true` support
    - [x] Implement page-by-page/chunk progress updates
    - [x] Update progress modal to show per-page/chunk progress
 - [ ] Model selection UX

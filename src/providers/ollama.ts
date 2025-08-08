@@ -94,8 +94,15 @@ export const OllamaProvider: Provider = {
             body: JSON.stringify(requestBody)
           });
 
-          if (response.status === 200 && response.json.response) {
-            results.push(response.json.response);
+          if (response.status === 200) {
+            const textAgg = extractResponseText(response);
+            if (textAgg) {
+              results.push(textAgg);
+            } else if (response.json && response.json.response) {
+              results.push(response.json.response);
+            } else {
+              throw new Error('Unexpected Ollama response format');
+            }
             reportProgress({ phase: 'chunk', message: `Finished chunk ${chunkIndex}/${chunks.length}`, current: chunkIndex, total: chunks.length });
             try { new Notice(`Ollama: finished chunk ${chunkIndex}/${chunks.length}`, 1200); } catch {}
             break;
@@ -143,7 +150,7 @@ export const OllamaProvider: Provider = {
     const requestBody = {
       model: settings.selectedModel,
       prompt: `${prompt}\n\n${text}`,
-      stream: false
+      stream: Boolean(settings.ollamaEnableStreaming)
     };
 
     const response = await requestUrl({
@@ -153,8 +160,10 @@ export const OllamaProvider: Provider = {
       body: JSON.stringify(requestBody)
     });
 
-    if (response.status === 200 && response.json.response) {
-      return response.json.response;
+    if (response.status === 200) {
+      const textAgg = extractResponseText(response);
+      if (textAgg) return textAgg;
+      if (response.json && response.json.response) return response.json.response;
     }
 
     throw new Error(`Ollama API error: ${response.status} - ${JSON.stringify(response.json)}`);
@@ -165,7 +174,23 @@ export const OllamaProvider: Provider = {
       let ollamaUrl = normalizeUrl(plugin.settings.ollamaUrl);
       const response = await requestUrl({ url: `${ollamaUrl}/api/tags`, method: 'GET' });
       if (response.status === 200 && response.json.models) {
-        plugin.settings.ollamaModels = response.json.models.map((m: any) => m.name);
+        const models: string[] = response.json.models.map((m: any) => m.name);
+        plugin.settings.ollamaModels = models;
+        // Build vision-capable list using heuristic and /api/show metadata if available
+        const visionSet: Set<string> = new Set();
+        models.forEach(m => { if (isVisionModel(m)) visionSet.add(m); });
+        try {
+          for (const m of models) {
+            const show = await requestUrl({ url: `${ollamaUrl}/api/show`, method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: m }) });
+            if (show.status === 200) {
+              const lower = JSON.stringify(show.json || {}).toLowerCase();
+              if (lower.includes('vision') || lower.includes('image') || lower.includes('multimodal')) {
+                visionSet.add(m);
+              }
+            }
+          }
+        } catch {}
+        plugin.settings.ollamaVisionModels = Array.from(visionSet);
         await plugin.saveSettings();
         return true;
       }
@@ -208,3 +233,25 @@ export const OllamaProvider: Provider = {
     }
   }
 };
+
+function extractResponseText(resp: any): string | null {
+  try {
+    // If streaming was on, Ollama returns NDJSON lines. Try to parse resp.text
+    if (typeof resp.text === 'string' && resp.text.trim().length > 0) {
+      const lines = resp.text.split(/\r?\n/).filter((l: string) => l.trim().length > 0);
+      let aggregate = '';
+      for (const line of lines) {
+        try {
+          const obj = JSON.parse(line);
+          if (typeof obj.response === 'string') {
+            aggregate += obj.response;
+          }
+        } catch {
+          // ignore non-JSON lines
+        }
+      }
+      return aggregate.length > 0 ? aggregate : null;
+    }
+  } catch {}
+  return null;
+}

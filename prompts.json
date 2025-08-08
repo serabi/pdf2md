@@ -2,8 +2,14 @@
   "defaultPrompts": [
     {
       "id": "image-text-extraction",
-      "name": "Comprehensive Text Extraction",
-      "content": "Extract the text from this image of a document page and convert it to markdown format.\n\nKEY REQUIREMENTS:\n1. Include ALL visible text - do not skip or summarize any content\n2. Preserve the document's structure and hierarchy\n3. Use proper markdown formatting:\n   - # for main titles\n   - ## for section headers\n   - ### for subsections\n   - **bold** for emphasized text\n   - *italic* for italicized text\n   - - or * for bullet points\n   - 1. for numbered lists\n   - > for quotes or indented sections\n   - ``` for code blocks if applicable\n   - `inline code` for technical terms or code snippets\n\n4. Maintain original:\n   - Paragraph breaks\n   - List structures\n   - Text alignment where significant\n   - Special formatting\n\n5. For unclear text, use [unclear: best guess] format\n6. For handwritten notes or annotations, include them inline where they appear\n7. For diagrams or figures, provide a brief description: [Figure: description]\n\nOutput clean, well-formatted markdown that accurately represents the original document.",
+      "name": "Handwritten to Markdown (Strict)",
+      "content": "You are converting handwritten page images to Markdown.\n\nRules (must follow):\n- Output ONLY Markdown. No preface, no explanations, no fenced code blocks.\n- Correct spelling/obvious grammar; keep meaning and tone.\n- Headings: `#` title (if clear), then `##`, `###` for sections/subsections.\n- Lists: `- ` for bullets; `1.` for ordered; preserve nesting with two-space indents.\n- Use **bold** for strong emphasis; *italic* for mild emphasis; ~~text~~ for struck-out text.\n- Tables: Use Markdown tables if layout is clearly tabular; otherwise use lists.\n- Diagrams/sketches: [diagram: brief description].\n- Unclear text: [unclear] or [unclear: best guess].\n- If multiple pages are provided, insert \n\n---\n\n between pages, preserving order.\n- Formatting hygiene: one blank line between blocks; no trailing spaces.",
+      "isDefault": true
+    },
+    {
+      "id": "ollama-default-prompt",
+      "name": "Ollama Default Prompt (Strict)",
+      "content": "You are converting handwritten page images to Markdown.\n\nRules (must follow):\n- Output ONLY Markdown. No preface, no explanations, no fenced code blocks.\n- Correct spelling/obvious grammar; keep meaning and tone.\n- Headings: `#` title (if clear), then `##`, `###` for sections/subsections.\n- Lists: `- ` for bullets; `1.` for ordered; preserve nesting with two-space indents.\n- Use **bold** for strong emphasis; *italic* for mild emphasis; ~~text~~ for struck-out text.\n- Tables: Use Markdown tables if layout is clearly tabular; otherwise use lists.\n- Diagrams/sketches: [diagram: brief description].\n- Unclear text: [unclear] or [unclear: best guess].\n- If multiple pages are provided, insert \n\n---\n\n between pages, preserving order.\n- Formatting hygiene: one blank line between blocks; no trailing spaces.",
       "isDefault": true
     }
   ]

@@ -65,6 +65,22 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.selectedProvider)
 				.onChange(async (value: 'anthropic' | 'ollama') => {
 					this.plugin.settings.selectedProvider = value;
+					// Auto-select a sensible default prompt for the provider
+					try {
+						if (value === 'ollama') {
+							const p = getPromptById(this.plugin, 'ollama-default-prompt');
+							if (p) {
+								this.plugin.settings.selectedPromptId = p.id;
+								this.plugin.settings.currentPrompt = p.content;
+							}
+						} else if (value === 'anthropic') {
+							const p = getPromptById(this.plugin, 'image-text-extraction');
+							if (p) {
+								this.plugin.settings.selectedPromptId = p.id;
+								this.plugin.settings.currentPrompt = p.content;
+							}
+						}
+					} catch {}
 					await this.plugin.saveSettings();
 					this.display(); // Refresh to show relevant settings
 				}));
@@ -148,7 +164,11 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 					.setName('Ollama Model')
 					.setDesc('Select the model to use (vision-capable models recommended for images)')
 					.addDropdown(dropdown => {
-						const labelVision = (m: string) => /llava|bakllava|moondream|qwen[- ]?vl|qwenvl|minicpm|yi[- ]?vl|phi-3-vision/i.test(m) ? `${m} (vision)` : m;
+					const labelVision = (m: string) => {
+						const visionList = new Set(this.plugin.settings.ollamaVisionModels || []);
+						const heuristic = /llava|bakllava|moondream|qwen[- ]?vl|qwenvl|minicpm|yi[- ]?vl|phi-3-vision/i.test(m);
+						return (visionList.has(m) || heuristic) ? `${m} (vision)` : m;
+					};
 						this.plugin.settings.ollamaModels.forEach(model => {
 							dropdown.addOption(model, labelVision(model));
 						});
@@ -162,7 +182,7 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 
 				// Warning if non-vision model selected and user hasn't overridden
 				const selected = this.plugin.settings.selectedModel || '';
-				const isVision = /llava|bakllava|moondream|qwen[- ]?vl|qwenvl|minicpm|yi[- ]?vl|phi-3-vision/i.test(selected);
+				const isVision = (this.plugin.settings.ollamaVisionModels || []).includes(selected) || /llava|bakllava|moondream|qwen[- ]?vl|qwenvl|minicpm|yi[- ]?vl|phi-3-vision/i.test(selected);
 				if (!isVision && !this.plugin.settings.ollamaAssumeVision) {
 					containerEl.createEl('p', {
 						text: `Selected model may not support images. Enable "Assume model supports vision" above to force, or choose a vision-capable model (e.g., llava).`,
