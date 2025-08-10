@@ -10,11 +10,21 @@ export default class PDF2MDPlugin extends Plugin {
 
 	async onload() {
 		console.log('[PDF2MD] Plugin loading...');
-		
-		configurePDFJS();
+		try {
+			configurePDFJS();
+		} catch (e) {
+			console.warn('[PDF2MD] PDF.js configuration skipped:', (e as any)?.message);
+		}
 		
 		console.log('[PDF2MD] Loading settings...');
-		await initializeSettings(this);
+		try {
+			await initializeSettings(this);
+		} catch (e) {
+			console.error('[PDF2MD] initializeSettings failed, using defaults:', (e as any)?.message);
+			// Fallback to defaults to ensure settings tab still loads
+			const { DEFAULT_SETTINGS } = await import('./src/types');
+			this.settings = { ...DEFAULT_SETTINGS } as any;
+		}
 		
 		registerUI(this);
 	}

@@ -1,6 +1,7 @@
 import type { PDF2MDSettings } from './types';
 import type PDF2MDPlugin from 'main';
 import { getProvider } from './providers';
+import type { AiMessage } from './providers/messages';
 
 export async function processWithAI(settings: PDF2MDSettings, images: string[], prompt?: string): Promise<string> {
   const usePrompt = prompt || settings.currentPrompt;

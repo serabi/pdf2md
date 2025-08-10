@@ -1,6 +1,7 @@
 import { requestUrl } from 'obsidian';
 import type { PDF2MDSettings } from '../types';
 import type { Provider } from './types';
+import { buildUserMessageWithImages, toAnthropicContent } from './messages';
 
 const VALID_MODELS = [
   'claude-sonnet-4-20250514',
@@ -21,33 +22,8 @@ export const AnthropicProvider: Provider = {
       ? settings.selectedModel
       : VALID_MODELS[0];
 
-    const content: any[] = [{ type: 'text', text: prompt }];
-
-    images.forEach((imageDataUrl, index) => {
-      let mediaType = 'image/png';
-      let imageData = imageDataUrl;
-      if (imageDataUrl.startsWith('data:image/jpeg;base64,')) {
-        mediaType = 'image/jpeg';
-        imageData = imageDataUrl.replace(/^data:image\/jpeg;base64,/, '');
-      } else if (imageDataUrl.startsWith('data:image/webp;base64,')) {
-        mediaType = 'image/webp';
-        imageData = imageDataUrl.replace(/^data:image\/webp;base64,/, '');
-      } else if (imageDataUrl.startsWith('data:image/png;base64,')) {
-        mediaType = 'image/png';
-        imageData = imageDataUrl.replace(/^data:image\/png;base64,/, '');
-      } else {
-        imageData = imageDataUrl.replace(/^data:image\/[^;]+;base64,/, '');
-      }
-
-      content.push({
-        type: 'image',
-        source: { type: 'base64', media_type: mediaType, data: imageData }
-      });
-
-      if (index < images.length - 1) {
-        content.push({ type: 'text', text: `\n\n--- Page ${index + 2} ---\n\n` });
-      }
-    });
+    const userMessage = buildUserMessageWithImages(prompt, images, { addPageSeparators: true });
+    const content = toAnthropicContent(userMessage);
 
     const requestBody = {
       model: modelToUse,
@@ -74,7 +50,7 @@ export const AnthropicProvider: Provider = {
   },
 
   async processText(settings: PDF2MDSettings, text: string, prompt: string): Promise<string> {
-    const content = `${prompt}\n\n${text}`;
+    const content = [{ type: 'text', text: `${prompt}\n\n${text}` }];
     const requestBody = {
       model: settings.selectedModel,
       max_tokens: 4096,

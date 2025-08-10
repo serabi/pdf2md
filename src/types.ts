@@ -12,19 +12,26 @@ export interface PDFDocumentProxy {
 }
 
 export interface PDF2MDSettings {
-	anthropicApiKey: string;
-	ollamaUrl: string;
-	selectedModel: string;
-	selectedProvider: 'anthropic' | 'ollama';
+    anthropicApiKey: string;
+    ollamaUrl: string;
+    selectedModel: string;
+    selectedProvider: 'anthropic' | 'ollama' | 'openai' | 'openrouter' | 'lmstudio';
 	currentPrompt: string;
 	savedPrompts: SavedPrompt[];
 	anthropicModels: string[];
 	ollamaModels: string[];
+    lmstudioModels?: string[];
+    lmstudioVisionModels?: string[];
 	ollamaVisionModels?: string[];
 	selectedPromptId: string;
 	defaultPrompts: DefaultPrompt[];
 	postProcessingTemplate: string;
 	enablePostProcessing: boolean;
+    // AI multi-pass refinement
+    enableMultiPass?: boolean;
+    enableThirdPass?: boolean;
+    pass2Prompt?: string;
+    pass3Prompt?: string;
 	watchFolder: string;
 	outputFolder: string;
 	enableWatching: boolean;
@@ -39,12 +46,31 @@ export interface PDF2MDSettings {
 	ollamaAssumeVision?: boolean;
 	ollamaEnableStreaming?: boolean;
 	ollamaMaxRequestChars?: number;
+	ollamaNumPredict?: number;
+	ollamaTemperature?: number;
+	ollamaTextFallbackEnabled?: boolean;
+	// OCR settings (Tesseract)
+	tesseractPath?: string;
+	tesseractLanguages?: string; // e.g., 'eng', 'eng+por'
+	tesseractOEM?: number; // 0-3
+	tesseractPSM?: number; // 0-13 typical
 	// PDF image extraction controls
 	pdfImageDpi?: number;
 	pdfImageMaxWidth?: number;
 	pdfImageFormat?: 'png' | 'jpeg';
 	pdfJpegQuality?: number;
-	popplerPdftoppmPath?: string;
+    popplerPdftoppmPath?: string;
+    // OpenAI settings
+    openaiApiKey?: string;
+    openaiBaseUrl?: string; // allow Azure/compatible endpoints
+    openaiOrganization?: string;
+    openaiTemperature?: number;
+    openaiMaxTokens?: number;
+    // LM Studio settings (OpenAI-compatible)
+    lmstudioBaseUrl?: string;
+    lmstudioApiKey?: string; // optional if LM Studio enforces auth
+    lmstudioTemperature?: number;
+    lmstudioMaxTokens?: number;
 }
 
 export interface SavedPrompt {
@@ -76,7 +102,7 @@ export const DEFAULT_SETTINGS: PDF2MDSettings = {
 	anthropicApiKey: '',
 	ollamaUrl: 'http://localhost:11434',
 	selectedModel: 'claude-sonnet-4-0',
-	selectedProvider: 'anthropic',
+    selectedProvider: 'anthropic',
 	currentPrompt: DEFAULT_PROMPTS[0].content,
 	savedPrompts: [],
 	anthropicModels: [
@@ -87,10 +113,17 @@ export const DEFAULT_SETTINGS: PDF2MDSettings = {
 	],
 	ollamaModels: [],
 	ollamaVisionModels: [],
+    lmstudioModels: [],
+    lmstudioVisionModels: [],
 	selectedPromptId: 'image-text-extraction',
 	defaultPrompts: DEFAULT_PROMPTS,
 	postProcessingTemplate: '---\ntags: [pdf2md, converted]\ndate: {{date}}\n---\n\n{{content}}',
 	enablePostProcessing: true,
+    // Multi-pass defaults
+    enableMultiPass: false,
+    enableThirdPass: false,
+    pass2Prompt: 'Clean and normalize the following Markdown: fix broken lists, convert ASCII tables to Markdown tables, merge hyphenated words at line breaks, standardize headings (ATX), and ensure consistent spacing. Do not add new content. Only return the improved Markdown.\n\nInput:',
+    pass3Prompt: 'Improve the structure of the following Markdown: refine headings hierarchy, add missing blanks between sections, and format tables for readability without changing data. Do not change the meaning. Only return the improved Markdown.\n\nInput:',
 	watchFolder: '',
 	outputFolder: '',
 	enableWatching: false,
@@ -105,11 +138,30 @@ export const DEFAULT_SETTINGS: PDF2MDSettings = {
 	ollamaAssumeVision: false,
 	ollamaEnableStreaming: false,
 	ollamaMaxRequestChars: 900000,
+	ollamaNumPredict: 1024,
+	ollamaTemperature: 0.2,
+	ollamaTextFallbackEnabled: true,
+	// OCR defaults
+	tesseractPath: '',
+	tesseractLanguages: 'eng',
+	tesseractOEM: 1,
+	tesseractPSM: 6,
 	// PDF image extraction defaults
 	pdfImageDpi: 200,
 	pdfImageMaxWidth: 2048,
 	pdfImageFormat: 'png',
 	pdfJpegQuality: 85
 	,
-	popplerPdftoppmPath: ''
+    popplerPdftoppmPath: '',
+    // OpenAI defaults
+    openaiApiKey: '',
+    openaiBaseUrl: 'https://api.openai.com',
+    openaiOrganization: '',
+    openaiTemperature: 0.2,
+    openaiMaxTokens: 2048,
+    // LM Studio defaults
+    lmstudioBaseUrl: 'http://localhost:1234',
+    lmstudioApiKey: '',
+    lmstudioTemperature: 0.2,
+    lmstudioMaxTokens: 2048
 }

@@ -1,7 +1,8 @@
 import { requestUrl, Notice } from 'obsidian';
-import { reportProgress } from '../progress';
+import { reportProgress, isCancelled } from '../progress';
 import type { PDF2MDSettings } from '../types';
 import type { Provider } from './types';
+import { buildUserMessageWithImages, toOllamaPromptAndImages } from './messages';
 
 function normalizeUrl(url: string): string {
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -47,25 +48,19 @@ export const OllamaProvider: Provider = {
     const results: string[] = [];
     let chunkIndex = 0;
     for (const chunk of chunks) {
+      if (isCancelled()) throw new Error('Cancelled by user');
       chunkIndex++;
       reportProgress({ phase: 'chunk', message: `Processing chunk ${chunkIndex}/${chunks.length}`, current: chunkIndex, total: chunks.length });
       try {
         new Notice(`Ollama: processing chunk ${chunkIndex}/${chunks.length}...`, 2000);
       } catch {}
-      const processedImages = chunk.map((img) => {
-        if (img.startsWith('data:image/jpeg;base64,')) {
-          return img.replace(/^data:image\/jpeg;base64,/, '');
-        } else if (img.startsWith('data:image/webp;base64,')) {
-          return img.replace(/^data:image\/webp;base64,/, '');
-        } else if (img.startsWith('data:image/png;base64,')) {
-          return img.replace(/^data:image\/png;base64,/, '');
-        }
-        return img.replace(/^data:image\/[^;]+;base64,/, '');
-      });
+      // Build unified message and translate to Ollama fields
+      const userMessage = buildUserMessageWithImages(prompt, chunk, { addPageSeparators: chunk.length > 1 });
+      const { prompt: promptForChunk, images: processedImages } = toOllamaPromptAndImages([userMessage]);
 
       // Enforce max payload size by truncating images if necessary
       const maxChars = Math.max(200000, settings.ollamaMaxRequestChars ?? 900000);
-      const promptPart = prompt || '';
+      const promptPart = promptForChunk || '';
       let payloadImages = processedImages.slice();
       while (payloadImages.length > 0) {
         const estimatedSize = JSON.stringify({ model: settings.selectedModel, prompt: promptPart, images: payloadImages, stream: false }).length;
@@ -77,15 +72,18 @@ export const OllamaProvider: Provider = {
 
       const requestBody = {
         model: settings.selectedModel,
-        prompt: chunk.length > 1
-          ? `${prompt}\n\nThe following images are consecutive pages for this document chunk. Preserve their order.`
-          : prompt,
+        prompt: promptPart,
         images: payloadImages,
-        stream: Boolean(settings.ollamaEnableStreaming)
+        stream: Boolean(settings.ollamaEnableStreaming),
+        options: {
+          temperature: settings.ollamaTemperature ?? 0.2,
+          num_predict: settings.ollamaNumPredict ?? 1024
+        }
       } as any;
 
       let attempt = 0;
       while (true) {
+        if (isCancelled()) throw new Error('Cancelled by user');
         try {
           const response = await requestUrl({
             url: `${ollamaUrl}/api/generate`,
@@ -126,6 +124,46 @@ export const OllamaProvider: Provider = {
               new Notice(`Ollama: model "${settings.selectedModel}" not found. Try: ollama pull ${settings.selectedModel}`, 6000);
             } else if (msg.includes('image') && (msg.includes('unsupported') || msg.includes('not support') || msg.includes('vision'))) {
               new Notice('Ollama: selected model may not support image inputs. Use a vision-capable model (e.g., llava).', 6000);
+              if (settings.ollamaTextFallbackEnabled) {
+                try {
+                  // Save data URLs to temp PNG files for Tesseract
+                  const fs = require('fs').promises;
+                  const os = require('os');
+                  const path = require('path');
+                  const tmpDir = os.tmpdir();
+                  const imagePaths: string[] = [];
+                  for (const dataUrl of chunk) {
+                    const m = dataUrl.match(/^data:image\/(png|jpeg);base64,(.*)$/);
+                    if (!m) continue;
+                    const ext = m[1] === 'jpeg' ? 'jpg' : 'png';
+                    const b64 = m[2];
+                    const buf = Buffer.from(b64, 'base64');
+                    const filePath = path.join(tmpDir, `pdf2md-ocr-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`);
+                    await fs.writeFile(filePath, buf);
+                    imagePaths.push(filePath);
+                  }
+                  if (imagePaths.length > 0) {
+                    const { runTesseract } = await import('../utils');
+                    const ocrText = await runTesseract({
+                      imagePaths,
+                      tesseractPath: settings.tesseractPath,
+                      languages: settings.tesseractLanguages,
+                      oem: settings.tesseractOEM,
+                      psm: settings.tesseractPSM
+                    });
+                    // Clean up temp files
+                    for (const p of imagePaths) { try { await fs.unlink(p); } catch {} }
+                    if (ocrText && ocrText.trim().length > 0) {
+                      const textPrompt = `${prompt}\n\nThe previous step failed to process images; clean, correct, and format this OCR text instead:\n\n${ocrText}`;
+                      const textResult = await this.processText(settings, textPrompt, '');
+                      if (textResult) {
+                        results.push(textResult);
+                        break;
+                      }
+                    }
+                  }
+                } catch {}
+              }
             } else {
               new Notice(`Ollama: chunk ${chunkIndex}/${chunks.length} failed: ${reason}`, 6000);
             }
@@ -150,7 +188,11 @@ export const OllamaProvider: Provider = {
     const requestBody = {
       model: settings.selectedModel,
       prompt: `${prompt}\n\n${text}`,
-      stream: Boolean(settings.ollamaEnableStreaming)
+      stream: Boolean(settings.ollamaEnableStreaming),
+      options: {
+        temperature: settings.ollamaTemperature ?? 0.2,
+        num_predict: settings.ollamaNumPredict ?? 1024
+      }
     };
 
     const response = await requestUrl({

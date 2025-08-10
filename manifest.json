@@ -1,10 +1,10 @@
 {
 	"id": "pdf2md-plugin",
-	"name": "PDF To Markdown Converter",
-	"version": "0.2.3",
+	"name": "PDF2MD — PDF to Markdown Converter",
+	"version": "0.3.0",
 	"minAppVersion": "0.15.0",
-	"description": "Convert PDF documents to structured Markdown using AI (Anthropic Claude or Ollama). Extract text from PDFs and transform them into clean, well-organized Markdown notes for your vault.",
-	"author": "PDF2MD Development Team",
-	"authorUrl": "https://github.com/pdf2md-plugin",
+	"description": "Convert PDFs to clean Markdown using AI. Supports Anthropic Claude, OpenAI, Ollama (local), and LM Studio (local), with vision processing, multi‑pass refinement, templates, and automatic folder watching.",
+	"author": "Sarah Wolff (serabi)",
+	"authorUrl": "https://github.com/serabi",
 	"isDesktopOnly": false
 }

@@ -92,6 +92,33 @@ export async function processImagesWithAI(plugin: PDF2MDPlugin, images: string[]
         console.log('[PDF2MD] Step 2 complete: Initial AI processing done, markdown length:', initialMarkdown.length);
         
         let finalMarkdown = initialMarkdown;
+
+        // Optional Multi-pass AI refinement
+        if (plugin.settings.enableMultiPass) {
+            try {
+                console.log('[PDF2MD] Multi-pass: running pass 2 refinement');
+                reportProgress({ phase: 'status', message: 'Refinement pass 2' });
+                const pass2Prompt = plugin.settings.pass2Prompt || 'Clean and normalize the following Markdown. Only return the improved Markdown.\n\nInput:';
+                const pass2Input = `${pass2Prompt}\n\n${finalMarkdown}`;
+                const refined = await (await import('./ai')).processWithAI(plugin.settings, [], pass2Input);
+                if (refined && refined.trim().length > 0) {
+                    finalMarkdown = refined;
+                }
+
+                if (plugin.settings.enableThirdPass) {
+                    console.log('[PDF2MD] Multi-pass: running pass 3 refinement');
+                    reportProgress({ phase: 'status', message: 'Refinement pass 3' });
+                    const pass3Prompt = plugin.settings.pass3Prompt || 'Improve structure, headings, and tables. Only return the improved Markdown.\n\nInput:';
+                    const pass3Input = `${pass3Prompt}\n\n${finalMarkdown}`;
+                    const refined3 = await (await import('./ai')).processWithAI(plugin.settings, [], pass3Input);
+                    if (refined3 && refined3.trim().length > 0) {
+                        finalMarkdown = refined3;
+                    }
+                }
+            } catch (e) {
+                console.warn('[PDF2MD] Multi-pass refinement failed; continuing with current markdown');
+            }
+        }
         
         // Step 3: Post-processing (if enabled)
         if (plugin.settings.enablePostProcessing) {

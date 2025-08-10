@@ -1,7 +1,7 @@
 import type { PDF2MDSettings } from '../types';
 import type PDF2MDPlugin from 'main';
 
-export type ProviderId = 'anthropic' | 'ollama' | 'openrouter';
+export type ProviderId = 'anthropic' | 'ollama' | 'openrouter' | 'openai' | 'lmstudio';
 
 export interface ModelInfo {
   id: string;

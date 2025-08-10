@@ -1,7 +1,7 @@
 import { App, Modal, Notice, TFile } from 'obsidian';
 import PDF2MDPlugin from '../../main';
 import { processPDF } from '../processing';
-import { setProgressReporter, clearProgressReporter, ProgressUpdate } from '../progress';
+import { setProgressReporter, clearProgressReporter, ProgressUpdate, requestCancel, resetCancel } from '../progress';
 
 export class PDFProcessModal extends Modal {
     plugin: PDF2MDPlugin;
@@ -38,7 +38,16 @@ export class PDFProcessModal extends Modal {
 			}
 		});
 
-        if (!this.initialFile) {
+		// Cancel button
+		const controls = contentEl.createDiv('pdf2md-controls');
+		const cancelBtn = controls.createEl('button', { text: 'Cancel' });
+		cancelBtn.onclick = () => {
+			requestCancel();
+			cancelBtn.setAttr('disabled', 'true');
+			progressLabel.setText('Cancelling...');
+		};
+
+		if (!this.initialFile) {
             // File selection UI only if no initial file was provided
             const fileInputContainer = contentEl.createDiv('file-input-container');
             fileInputContainer.createEl('label', { text: 'Select a PDF file:' });
@@ -75,7 +84,8 @@ export class PDFProcessModal extends Modal {
                     if (selectedPath) {
                         const file = this.app.vault.getAbstractFileByPath(selectedPath) as TFile;
                         if (file) {
-                            await processPDF(this.plugin, file);
+							resetCancel();
+							await processPDF(this.plugin, file);
                             this.close();
                         }
                     } else if (fileInput.files && fileInput.files[0]) {
@@ -94,9 +104,10 @@ export class PDFProcessModal extends Modal {
             }
         } else {
             // If initial file provided, start processing immediately
-            const file = this.initialFile as TFile;
+			const file = this.initialFile as TFile;
             setTimeout(async () => {
-                await processPDF(this.plugin, file);
+				resetCancel();
+				await processPDF(this.plugin, file);
                 this.close();
             }, 0);
         }

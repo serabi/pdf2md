@@ -7,6 +7,7 @@ import { SavedPrompt, DefaultPrompt, DEFAULT_PROMPTS, MODEL_DISPLAY_NAMES } from
 import { loadOllamaModels } from '../ai';
 import { getAllPrompts, getPromptById } from '../utils';
 import { setupFolderWatcher } from '../watcher';
+import { runDiagnostics } from '../diagnostics';
 
 export class PDF2MDSettingTab extends PluginSettingTab {
 	plugin: PDF2MDPlugin;
@@ -18,52 +19,258 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 	}
 
 	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
+		try {
+			const { containerEl } = this;
+			containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'PDF to Markdown Settings' });
+			containerEl.createEl('h2', { text: 'PDF to Markdown Settings' });
 
-		// Create tab navigation
-		const tabContainer = containerEl.createDiv('tab-container');
-		const generalTab = tabContainer.createEl('button', {
-			text: 'General',
-			cls: this.activeTab === 'general' ? 'tab-button active' : 'tab-button'
-		});
-		const promptsTab = tabContainer.createEl('button', {
-			text: 'Prompts',
-			cls: this.activeTab === 'prompts' ? 'tab-button active' : 'tab-button'
-		});
+        // Create tab navigation
+			const tabContainer = containerEl.createDiv('tab-container');
+			const generalTab = tabContainer.createEl('button', {
+				text: 'General',
+				cls: this.activeTab === 'general' ? 'tab-button active' : 'tab-button'
+			});
+			const promptsTab = tabContainer.createEl('button', {
+				text: 'Prompts',
+				cls: this.activeTab === 'prompts' ? 'tab-button active' : 'tab-button'
+			});
+        const ollamaTab = tabContainer.createEl('button', {
+            text: 'Ollama',
+            cls: this.activeTab === 'ollama' ? 'tab-button active' : 'tab-button'
+        });
+        const openaiTab = tabContainer.createEl('button', {
+            text: 'OpenAI',
+            cls: this.activeTab === 'openai' ? 'tab-button active' : 'tab-button'
+        });
+        const lmstudioTab = tabContainer.createEl('button', {
+            text: 'LM Studio',
+            cls: this.activeTab === 'lmstudio' ? 'tab-button active' : 'tab-button'
+        });
 
-		generalTab.onclick = () => {
-			this.activeTab = 'general';
-			this.display();
-		};
+			generalTab.onclick = () => {
+				this.activeTab = 'general';
+				this.display();
+			};
 
-		promptsTab.onclick = () => {
-			this.activeTab = 'prompts';
-			this.display();
-		};
+			promptsTab.onclick = () => {
+				this.activeTab = 'prompts';
+				this.display();
+			};
+        ollamaTab.onclick = () => {
+            this.activeTab = 'ollama';
+            this.display();
+        };
+        openaiTab.onclick = () => {
+            this.activeTab = 'openai';
+            this.display();
+        };
+        lmstudioTab.onclick = () => {
+            this.activeTab = 'lmstudio';
+            this.display();
+        };
 
-		// Create content container
-		const contentContainer = containerEl.createDiv('tab-content');
+			// Create content container
+			const contentContainer = containerEl.createDiv('tab-content');
 
-		if (this.activeTab === 'general') {
-			this.displayGeneralTab(contentContainer);
-		} else {
-			this.displayPromptsTab(contentContainer);
-		}
-	}
+        if (this.activeTab === 'general') {
+				this.displayGeneralTab(contentContainer);
+        } else if (this.activeTab === 'prompts') {
+				this.displayPromptsTab(contentContainer);
+        } else if (this.activeTab === 'ollama') {
+            this.displayOllamaTab(contentContainer);
+        } else if (this.activeTab === 'openai') {
+            // OpenAI settings
+            new Setting(contentContainer)
+                .setName('OpenAI API Key')
+                .setDesc('Enter your OpenAI API key')
+                .addText(text => text
+                    .setPlaceholder('sk-...')
+                    .setValue(this.plugin.settings.openaiApiKey || '')
+                    .onChange(async (value) => {
+                        this.plugin.settings.openaiApiKey = value;
+                        await this.plugin.saveSettings();
+                    })
+                    .inputEl.type = 'password');
 
-	displayGeneralTab(containerEl: HTMLElement): void {
+            new Setting(contentContainer)
+                .setName('Base URL')
+                .setDesc('Optional. For Azure or OpenAI-compatible endpoints')
+                .addText(text => text
+                    .setPlaceholder('https://api.openai.com')
+                    .setValue(this.plugin.settings.openaiBaseUrl || 'https://api.openai.com')
+                    .onChange(async (value) => {
+                        this.plugin.settings.openaiBaseUrl = value.trim();
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(contentContainer)
+                .setName('Organization ID (optional)')
+                .setDesc('OpenAI organization header')
+                .addText(text => text
+                    .setPlaceholder('org_...')
+                    .setValue(this.plugin.settings.openaiOrganization || '')
+                    .onChange(async (value) => {
+                        this.plugin.settings.openaiOrganization = value.trim();
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(contentContainer)
+                .setName('Temperature')
+                .setDesc('0.0–1.0')
+                .addText(text => text
+                    .setPlaceholder('0.2')
+                    .setValue(String(this.plugin.settings.openaiTemperature ?? 0.2))
+                    .onChange(async (value) => {
+                        const num = Math.max(0, Math.min(1, parseFloat(value || '0.2') || 0.2));
+                        this.plugin.settings.openaiTemperature = num;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(contentContainer)
+                .setName('Max tokens')
+                .setDesc('Upper bound for generation')
+                .addText(text => text
+                    .setPlaceholder('2048')
+                    .setValue(String(this.plugin.settings.openaiMaxTokens ?? 2048))
+                    .onChange(async (value) => {
+                        const num = Math.max(64, Math.min(8192, parseInt(value || '2048', 10) || 2048));
+                        this.plugin.settings.openaiMaxTokens = num;
+                        await this.plugin.saveSettings();
+                    }));
+        } else if (this.activeTab === 'lmstudio') {
+            // LM Studio settings (OpenAI-compatible)
+            new Setting(contentContainer)
+                .setName('LM Studio Base URL')
+                .setDesc('Enter the LM Studio API URL (e.g., http://10.0.0.97:1234)')
+                .addText(text => text
+                    .setPlaceholder('http://localhost:1234')
+                    .setValue(this.plugin.settings.lmstudioBaseUrl || 'http://localhost:1234')
+                    .onChange(async (value) => {
+                        this.plugin.settings.lmstudioBaseUrl = value.trim();
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(contentContainer)
+                .setName('API Key (optional)')
+                .setDesc('Only if your LM Studio server requires it')
+                .addText(text => text
+                    .setPlaceholder('lm-...')
+                    .setValue(this.plugin.settings.lmstudioApiKey || '')
+                    .onChange(async (value) => {
+                        this.plugin.settings.lmstudioApiKey = value;
+                        await this.plugin.saveSettings();
+                    })
+                    .inputEl.type = 'password');
+
+            // Tools: Refresh models / Test Connection
+            new Setting(contentContainer)
+                .setName('LM Studio Tools')
+                .setDesc('Connectivity and model listing')
+                .addButton(button => button
+                    .setButtonText('Refresh Models')
+                    .onClick(async () => {
+                        try {
+                            const { getProvider } = await import('../providers');
+                            const provider = getProvider('lmstudio');
+                            const ok = provider.loadModels ? await provider.loadModels(this.plugin) : false;
+                            new Notice(ok ? 'LM Studio models loaded' : 'Failed to load LM Studio models');
+                            this.display();
+                        } catch {
+                            new Notice('LM Studio refresh unavailable');
+                        }
+                    }))
+                .addButton(button => button
+                    .setButtonText('Test Connection')
+                    .onClick(async () => {
+                        try {
+                            const { getProvider } = await import('../providers');
+                            const provider = getProvider('lmstudio');
+                            const ok = provider.testConnection ? await provider.testConnection(this.plugin) : false;
+                            new Notice(ok ? 'LM Studio connection OK' : 'LM Studio connection failed');
+                        } catch {
+                            new Notice('LM Studio connection test unavailable');
+                        }
+                    }));
+
+            {
+                const models = this.plugin.settings.lmstudioModels || [];
+                const visionList = new Set(this.plugin.settings.lmstudioVisionModels || []);
+                if (models.length > 0) {
+                    new Setting(contentContainer)
+                        .setName('Model')
+                        .setDesc('Select a model discovered from LM Studio')
+                        .addDropdown(dropdown => {
+                            const labelVision = (m: string) => (visionList.has(m) ? `${m} (vision)` : m);
+                            models.forEach(model => dropdown.addOption(model, labelVision(model)));
+                            dropdown
+                                .setValue(this.plugin.settings.selectedModel)
+                                .onChange(async (value) => {
+                                    this.plugin.settings.selectedModel = value;
+                                    await this.plugin.saveSettings();
+                                });
+                        });
+                } else {
+                    new Setting(contentContainer)
+                        .setName('Model')
+                        .setDesc('Enter the model ID exposed by LM Studio or refresh models above')
+                        .addText(text => text
+                            .setPlaceholder('e.g., llama-3.1:8b-instruct-q4_K_M')
+                            .setValue(this.plugin.settings.selectedModel)
+                            .onChange(async (value) => {
+                                this.plugin.settings.selectedModel = value.trim();
+                                await this.plugin.saveSettings();
+                            }));
+                }
+            }
+
+            new Setting(contentContainer)
+                .setName('Temperature')
+                .setDesc('0.0–1.0')
+                .addText(text => text
+                    .setPlaceholder('0.2')
+                    .setValue(String(this.plugin.settings.lmstudioTemperature ?? 0.2))
+                    .onChange(async (value) => {
+                        const num = Math.max(0, Math.min(1, parseFloat(value || '0.2') || 0.2));
+                        this.plugin.settings.lmstudioTemperature = num;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(contentContainer)
+                .setName('Max tokens')
+                .setDesc('Upper bound for generation')
+                .addText(text => text
+                    .setPlaceholder('2048')
+                    .setValue(String(this.plugin.settings.lmstudioMaxTokens ?? 2048))
+                    .onChange(async (value) => {
+                        const num = Math.max(64, Math.min(8192, parseInt(value || '2048', 10) || 2048));
+                        this.plugin.settings.lmstudioMaxTokens = num;
+                        await this.plugin.saveSettings();
+                    }));
+        }
+        } catch (e) {
+			console.error('[PDF2MD] Settings render error:', (e as any)?.message, e);
+			try {
+				this.containerEl.empty();
+				this.containerEl.createEl('h2', { text: 'PDF to Markdown Settings' });
+				this.containerEl.createEl('p', { text: 'Failed to render settings UI. See console for details.' });
+			} catch {}
+        }
+
+    }
+
+    displayGeneralTab(containerEl: HTMLElement): void {
 		// AI Provider Selection
 		new Setting(containerEl)
 			.setName('AI Provider')
-			.setDesc('Choose between Anthropic Claude or Ollama')
-			.addDropdown(dropdown => dropdown
+            .setDesc('Choose AI provider')
+            .addDropdown(dropdown => dropdown
 				.addOption('anthropic', 'Anthropic Claude')
 				.addOption('ollama', 'Ollama (Local)')
+                .addOption('openai', 'OpenAI')
+                .addOption('lmstudio', 'LM Studio')
 				.setValue(this.plugin.settings.selectedProvider)
-				.onChange(async (value: 'anthropic' | 'ollama') => {
+                .onChange(async (value: 'anthropic' | 'ollama' | 'openai' | 'openrouter' | 'lmstudio') => {
 					this.plugin.settings.selectedProvider = value;
 					// Auto-select a sensible default prompt for the provider
 					try {
@@ -73,12 +280,24 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 								this.plugin.settings.selectedPromptId = p.id;
 								this.plugin.settings.currentPrompt = p.content;
 							}
-						} else if (value === 'anthropic') {
+                        } else if (value === 'anthropic') {
 							const p = getPromptById(this.plugin, 'image-text-extraction');
 							if (p) {
 								this.plugin.settings.selectedPromptId = p.id;
 								this.plugin.settings.currentPrompt = p.content;
 							}
+                        } else if (value === 'openai') {
+                            const p = getPromptById(this.plugin, 'image-text-extraction');
+                            if (p) {
+                                this.plugin.settings.selectedPromptId = p.id;
+                                this.plugin.settings.currentPrompt = p.content;
+                            }
+                        } else if (value === 'lmstudio') {
+                            const p = getPromptById(this.plugin, 'image-text-extraction');
+                            if (p) {
+                                this.plugin.settings.selectedPromptId = p.id;
+                                this.plugin.settings.currentPrompt = p.content;
+                            }
 						}
 					} catch {}
 					await this.plugin.saveSettings();
@@ -115,48 +334,8 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 							await this.plugin.saveSettings();
 						});
 				});
-		} else {
-			// Ollama URL
-			new Setting(containerEl)
-				.setName('Ollama URL')
-				.setDesc('URL of your Ollama instance')
-				.addText(text => text
-					.setPlaceholder('http://localhost:11434')
-					.setValue(this.plugin.settings.ollamaUrl)
-					.onChange(async (value) => {
-						this.plugin.settings.ollamaUrl = value;
-						await this.plugin.saveSettings();
-					}));
-
-			// Refresh Ollama Models / Test Connection
-			new Setting(containerEl)
-				.setName('Ollama Tools')
-				.setDesc('Manage Ollama connectivity and models')
-				.addButton(button => button
-					.setButtonText('Refresh Models')
-					.onClick(async () => {
-						const success = await loadOllamaModels(this.plugin);
-						if (success) {
-							new Notice('Ollama models loaded successfully');
-						} else {
-							new Notice('Failed to connect to Ollama. Please ensure Ollama is running at ' + this.plugin.settings.ollamaUrl);
-						}
-						this.display();
-					}))
-				.addButton(button => button
-					.setButtonText('Test Connection')
-					.onClick(async () => {
-						// Use provider testConnection via ai router
-						try {
-							const { getProvider } = await import('../providers');
-							const provider = getProvider('ollama');
-							const ok = provider.testConnection ? await provider.testConnection(this.plugin) : false;
-							if (ok) new Notice('Ollama connection OK');
-							else new Notice('Ollama connection failed');
-						} catch (e) {
-							new Notice('Ollama connection test unavailable');
-						}
-					}));
+        } else if (this.plugin.settings.selectedProvider === 'ollama') {
+			// Ollama settings moved to Ollama tab
 
 			// Model Selection for Ollama (with simple vision labeling)
 			if (this.plugin.settings.ollamaModels.length > 0) {
@@ -183,78 +362,67 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 				// Warning if non-vision model selected and user hasn't overridden
 				const selected = this.plugin.settings.selectedModel || '';
 				const isVision = (this.plugin.settings.ollamaVisionModels || []).includes(selected) || /llava|bakllava|moondream|qwen[- ]?vl|qwenvl|minicpm|yi[- ]?vl|phi-3-vision/i.test(selected);
-				if (!isVision && !this.plugin.settings.ollamaAssumeVision) {
+                if (!isVision && !this.plugin.settings.ollamaAssumeVision) {
 					containerEl.createEl('p', {
 						text: `Selected model may not support images. Enable "Assume model supports vision" above to force, or choose a vision-capable model (e.g., llava).`,
 						cls: 'setting-item-description mod-warning'
 					});
-				}
+                }
 			} else {
 				containerEl.createEl('p', { 
 					text: 'No Ollama models found. Click "Refresh" above to load models from your Ollama instance.',
 					cls: 'setting-item-description mod-warning'
 				});
-			}
+            }
 
-			// Ollama advanced settings
-			containerEl.createEl('h3', { text: 'Ollama Advanced Settings' });
-
-			new Setting(containerEl)
-				.setName('Images per request')
-				.setDesc('How many images to send per request (many models only support 1).')
-				.addText(text => text
-					.setPlaceholder('1')
-					.setValue(String(this.plugin.settings.ollamaImagesPerRequest ?? 1))
-					.onChange(async (value) => {
-						const num = Math.max(1, parseInt(value || '1', 10) || 1);
-						this.plugin.settings.ollamaImagesPerRequest = num;
-						await this.plugin.saveSettings();
-					}));
-
-			new Setting(containerEl)
-				.setName('Retry attempts')
-				.setDesc('Number of retries on transient errors')
-				.addText(text => text
-					.setPlaceholder('2')
-					.setValue(String(this.plugin.settings.ollamaRetryCount ?? 2))
-					.onChange(async (value) => {
-						const num = Math.max(0, parseInt(value || '2', 10) || 2);
-						this.plugin.settings.ollamaRetryCount = num;
-						await this.plugin.saveSettings();
-					}));
-
-			new Setting(containerEl)
-				.setName('Retry delay (ms)')
-				.setDesc('Delay between retries in milliseconds')
-				.addText(text => text
-					.setPlaceholder('1000')
-					.setValue(String(this.plugin.settings.ollamaRetryDelayMs ?? 1000))
-					.onChange(async (value) => {
-						const num = Math.max(0, parseInt(value || '1000', 10) || 1000);
-						this.plugin.settings.ollamaRetryDelayMs = num;
-						await this.plugin.saveSettings();
-					}));
-
-			new Setting(containerEl)
-				.setName('Assume model supports vision')
-				.setDesc('Treat the selected model as vision-capable even if name detection fails')
-				.addToggle(toggle => toggle
-					.setValue(Boolean(this.plugin.settings.ollamaAssumeVision))
-					.onChange(async (value) => {
-						this.plugin.settings.ollamaAssumeVision = value;
-						await this.plugin.saveSettings();
-					}));
-
-			new Setting(containerEl)
-				.setName('Enable streaming (experimental)')
-				.setDesc('Request streaming responses from Ollama (UI updates not yet streaming)')
-				.addToggle(toggle => toggle
-					.setValue(Boolean(this.plugin.settings.ollamaEnableStreaming))
-					.onChange(async (value) => {
-						this.plugin.settings.ollamaEnableStreaming = value;
-						await this.plugin.saveSettings();
-					}));
-		}
+            // Note for Ollama advanced settings location
+            containerEl.createEl('p', {
+                text: 'For advanced Ollama options, see the Ollama settings tab.',
+                cls: 'setting-item-description'
+            });
+        } else if (this.plugin.settings.selectedProvider === 'openai') {
+            // OpenAI minimal model selector (manual entry)
+            new Setting(containerEl)
+                .setName('OpenAI Model')
+                .setDesc('Enter an OpenAI chat/vision model (e.g., gpt-4o)')
+                .addText(text => text
+                    .setPlaceholder('gpt-4o')
+                    .setValue(this.plugin.settings.selectedModel)
+                    .onChange(async (value) => {
+                        this.plugin.settings.selectedModel = value.trim();
+                        await this.plugin.saveSettings();
+                    }));
+        } else if (this.plugin.settings.selectedProvider === 'lmstudio') {
+            // LM Studio model selector (dropdown if available)
+            const models = this.plugin.settings.lmstudioModels || [];
+            const visionList = new Set(this.plugin.settings.lmstudioVisionModels || []);
+            if (models.length > 0) {
+                new Setting(containerEl)
+                    .setName('LM Studio Model')
+                    .setDesc('Select a model discovered from LM Studio')
+                    .addDropdown(dropdown => {
+                        const labelVision = (m: string) => (visionList.has(m) ? `${m} (vision)` : m);
+                        models.forEach(model => dropdown.addOption(model, labelVision(model)));
+                        dropdown
+                            .setValue(this.plugin.settings.selectedModel)
+                            .onChange(async (value) => {
+                                this.plugin.settings.selectedModel = value;
+                                await this.plugin.saveSettings();
+                            });
+                    });
+            } else {
+                new Setting(containerEl)
+                    .setName('LM Studio Model')
+                    .setDesc('Enter the model ID exposed by LM Studio or refresh models from the LM Studio tab')
+                    .addText(text => text
+                        .setPlaceholder('e.g., llama-3.1:8b-instruct-q4_K_M')
+                        .setValue(this.plugin.settings.selectedModel)
+                        .onChange(async (value) => {
+                            this.plugin.settings.selectedModel = value.trim();
+                            await this.plugin.saveSettings();
+                        }));
+            }
+        }
 
 		// PDF image extraction controls
 		containerEl.createEl('h3', { text: 'PDF Image Extraction' });
@@ -304,6 +472,55 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					const num = Math.max(1, Math.min(100, parseInt(value || '85', 10) || 85));
 					this.plugin.settings.pdfJpegQuality = num;
+					await this.plugin.saveSettings();
+				}));
+
+		// OCR (Tesseract)
+		containerEl.createEl('h3', { text: 'OCR (Tesseract) Fallback' });
+
+		new Setting(containerEl)
+			.setName('Tesseract binary path (optional)')
+			.setDesc('If set, use this path to Tesseract; otherwise the system PATH is used')
+			.addText(text => text
+				.setPlaceholder('/usr/bin/tesseract or C\\\:\\Program Files\\Tesseract-OCR\\tesseract.exe')
+				.setValue(this.plugin.settings.tesseractPath || '')
+				.onChange(async (value) => {
+					this.plugin.settings.tesseractPath = value.trim();
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Languages')
+			.setDesc('Tesseract language codes (e.g., eng, eng+por)')
+			.addText(text => text
+				.setPlaceholder('eng')
+				.setValue(this.plugin.settings.tesseractLanguages || 'eng')
+				.onChange(async (value) => {
+					this.plugin.settings.tesseractLanguages = value.trim() || 'eng';
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('OEM (engine mode)')
+			.setDesc('0=Legacy, 1=LSTM (default), 2=Legacy+LSTM, 3=Default')
+			.addText(text => text
+				.setPlaceholder('1')
+				.setValue(String(this.plugin.settings.tesseractOEM ?? 1))
+				.onChange(async (value) => {
+					const num = Math.max(0, Math.min(3, parseInt(value || '1', 10) || 1));
+					this.plugin.settings.tesseractOEM = num;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('PSM (page segmentation)')
+			.setDesc('Common: 6 (block of text). Try 4 for columns, 7 for single line.')
+			.addText(text => text
+				.setPlaceholder('6')
+				.setValue(String(this.plugin.settings.tesseractPSM ?? 6))
+				.onChange(async (value) => {
+					const num = Math.max(0, Math.min(13, parseInt(value || '6', 10) || 6));
+					this.plugin.settings.tesseractPSM = num;
 					await this.plugin.saveSettings();
 				}));
 
@@ -423,6 +640,69 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 					textarea.style.fontFamily = 'var(--font-monospace)';
 				});
 		}
+
+        // Multi-pass refinement
+        containerEl.createEl('h3', { text: 'AI Multi-pass Refinement' });
+
+        new Setting(containerEl)
+            .setName('Enable multi-pass')
+            .setDesc('Run additional AI cleanup/refinement passes on the initial Markdown')
+            .addToggle(toggle => toggle
+                .setValue(Boolean(this.plugin.settings.enableMultiPass))
+                .onChange(async (value) => {
+                    this.plugin.settings.enableMultiPass = value;
+                    await this.plugin.saveSettings();
+                    this.display();
+                }));
+
+        if (this.plugin.settings.enableMultiPass) {
+            new Setting(containerEl)
+                .setName('Pass 2 prompt')
+                .setDesc('Prompt used to clean and normalize the initial Markdown')
+                .addTextArea(text => text
+                    .setPlaceholder('Enter a refinement prompt for pass 2')
+                    .setValue(this.plugin.settings.pass2Prompt || '')
+                    .onChange(async (value) => {
+                        this.plugin.settings.pass2Prompt = value;
+                        await this.plugin.saveSettings();
+                    }))
+                .then(setting => {
+                    const textarea = setting.controlEl.querySelector('textarea')!;
+                    textarea.rows = 4;
+                    textarea.style.minHeight = '80px';
+                    textarea.style.fontFamily = 'var(--font-monospace)';
+                });
+
+            new Setting(containerEl)
+                .setName('Enable third pass')
+                .setDesc('Run an optional third pass for structural improvements')
+                .addToggle(toggle => toggle
+                    .setValue(Boolean(this.plugin.settings.enableThirdPass))
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableThirdPass = value;
+                        await this.plugin.saveSettings();
+                        this.display();
+                    }));
+
+            if (this.plugin.settings.enableThirdPass) {
+                new Setting(containerEl)
+                    .setName('Pass 3 prompt')
+                    .setDesc('Prompt used to improve structure, headings, and tables')
+                    .addTextArea(text => text
+                        .setPlaceholder('Enter a refinement prompt for pass 3')
+                        .setValue(this.plugin.settings.pass3Prompt || '')
+                        .onChange(async (value) => {
+                            this.plugin.settings.pass3Prompt = value;
+                            await this.plugin.saveSettings();
+                        }))
+                    .then(setting => {
+                        const textarea = setting.controlEl.querySelector('textarea')!;
+                        textarea.rows = 4;
+                        textarea.style.minHeight = '80px';
+                        textarea.style.fontFamily = 'var(--font-monospace)';
+                    });
+            }
+        }
 
 		// Folder Settings
 		containerEl.createEl('h3', { text: 'File & Folder Settings' });
@@ -661,5 +941,196 @@ export class PDF2MDSettingTab extends PluginSettingTab {
 				cls: 'setting-item-description'
 			});
 		}
+	}
+
+	displayOllamaTab(containerEl: HTMLElement): void {
+		// Ollama URL
+		new Setting(containerEl)
+			.setName('Ollama URL')
+			.setDesc('URL of your Ollama instance')
+			.addText(text => text
+				.setPlaceholder('http://localhost:11434')
+				.setValue(this.plugin.settings.ollamaUrl)
+				.onChange(async (value) => {
+					this.plugin.settings.ollamaUrl = value;
+					await this.plugin.saveSettings();
+				}));
+
+		// Ollama Tools (Refresh / Test / Diagnostics)
+		new Setting(containerEl)
+			.setName('Ollama Tools')
+			.setDesc('Connectivity, models, and health checks')
+			.addButton(button => button
+				.setButtonText('Refresh Models')
+				.onClick(async () => {
+					const success = await loadOllamaModels(this.plugin);
+					if (success) new Notice('Ollama models loaded successfully');
+					else new Notice('Failed to connect to Ollama. Please ensure it is running.');
+					this.display();
+				}))
+			.addButton(button => button
+				.setButtonText('Test Connection')
+				.onClick(async () => {
+					try {
+						const { getProvider } = await import('../providers');
+						const provider = getProvider('ollama');
+						const ok = provider.testConnection ? await provider.testConnection(this.plugin) : false;
+						new Notice(ok ? 'Ollama connection OK' : 'Ollama connection failed');
+					} catch {
+						new Notice('Ollama connection test unavailable');
+					}
+				}))
+			.addButton(button => button
+				.setButtonText('Run Diagnostics')
+				.onClick(async () => {
+					try {
+						const res = await runDiagnostics(this.plugin);
+						const lines = [
+							`Provider: ${res.provider}`,
+							`Provider connection: ${res.providerConnectionOk ? 'OK' : 'FAIL'}`,
+							res.modelsCount !== undefined ? `Models: ${res.modelsCount}` : '',
+							`Tiny test: ${res.tinyTestOk === undefined ? 'N/A' : (res.tinyTestOk ? 'OK' : 'FAIL')}`,
+							`Poppler: ${res.popplerOk ? 'OK' : 'Missing'}`,
+							`Tesseract: ${res.tesseractOk ? 'OK' : 'Missing'}`,
+							...(res.messages || [])
+						].filter(Boolean);
+						new Notice(lines.join('\n'), 8000);
+					} catch (e) {
+						new Notice('Diagnostics failed');
+					}
+				}));
+
+		// Advanced Ollama Settings (moved from General)
+		containerEl.createEl('h3', { text: 'Advanced' });
+		// Reuse existing advanced controls by calling the tail of displayGeneralTab
+		// Model selection control
+		if (this.plugin.settings.ollamaModels.length > 0) {
+			new Setting(containerEl)
+				.setName('Ollama Model')
+				.setDesc('Select the model to use (vision-capable models recommended for images)')
+				.addDropdown(dropdown => {
+					const labelVision = (m: string) => {
+						const visionList = new Set(this.plugin.settings.ollamaVisionModels || []);
+						const heuristic = /llava|bakllava|moondream|qwen[- ]?vl|qwenvl|minicpm|yi[- ]?vl|phi-3-vision/i.test(m);
+						return (visionList.has(m) || heuristic) ? `${m} (vision)` : m;
+					};
+					this.plugin.settings.ollamaModels.forEach(model => {
+						dropdown.addOption(model, labelVision(model));
+					});
+					dropdown
+						.setValue(this.plugin.settings.selectedModel)
+						.onChange(async (value) => {
+							this.plugin.settings.selectedModel = value;
+							await this.plugin.saveSettings();
+						});
+				});
+
+			// Warning if non-vision model selected
+			const selected = this.plugin.settings.selectedModel || '';
+			const isVision = (this.plugin.settings.ollamaVisionModels || []).includes(selected) || /llava|bakllava|moondream|qwen[- ]?vl|qwenvl|minicpm|yi[- ]?vl|phi-3-vision/i.test(selected);
+			if (!isVision && !this.plugin.settings.ollamaAssumeVision) {
+				containerEl.createEl('p', {
+					text: `Selected model may not support images. Enable "Assume model supports vision" to force, or choose a vision-capable model (e.g., llava).`,
+					cls: 'setting-item-description mod-warning'
+				});
+			}
+		} else {
+			containerEl.createEl('p', { 
+				text: 'No Ollama models found. Click "Refresh Models" above to load models from your Ollama instance.',
+				cls: 'setting-item-description mod-warning'
+			});
+		}
+
+		containerEl.createEl('h3', { text: 'Ollama Advanced Settings' });
+
+		new Setting(containerEl)
+			.setName('Images per request')
+			.setDesc('How many images to send per request (many models only support 1).')
+			.addText(text => text
+				.setPlaceholder('1')
+				.setValue(String(this.plugin.settings.ollamaImagesPerRequest ?? 1))
+				.onChange(async (value) => {
+					const num = Math.max(1, parseInt(value || '1', 10) || 1);
+					this.plugin.settings.ollamaImagesPerRequest = num;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Retry attempts')
+			.setDesc('Number of retries on transient errors')
+			.addText(text => text
+				.setPlaceholder('2')
+				.setValue(String(this.plugin.settings.ollamaRetryCount ?? 2))
+				.onChange(async (value) => {
+					const num = Math.max(0, parseInt(value || '2', 10) || 2);
+					this.plugin.settings.ollamaRetryCount = num;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Retry delay (ms)')
+			.setDesc('Delay between retries in milliseconds')
+			.addText(text => text
+				.setPlaceholder('1000')
+				.setValue(String(this.plugin.settings.ollamaRetryDelayMs ?? 1000))
+				.onChange(async (value) => {
+					const num = Math.max(0, parseInt(value || '1000', 10) || 1000);
+					this.plugin.settings.ollamaRetryDelayMs = num;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Assume model supports vision')
+			.setDesc('Treat the selected model as vision-capable even if name detection fails')
+			.addToggle(toggle => toggle
+				.setValue(Boolean(this.plugin.settings.ollamaAssumeVision))
+				.onChange(async (value) => {
+					this.plugin.settings.ollamaAssumeVision = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Enable streaming (experimental)')
+			.setDesc('Request streaming responses from Ollama')
+			.addToggle(toggle => toggle
+				.setValue(Boolean(this.plugin.settings.ollamaEnableStreaming))
+				.onChange(async (value) => {
+					this.plugin.settings.ollamaEnableStreaming = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Max tokens (num_predict)')
+			.setDesc('Limit tokens generated per chunk (e.g., 512–2048)')
+			.addText(text => text
+				.setPlaceholder('1024')
+				.setValue(String(this.plugin.settings.ollamaNumPredict ?? 1024))
+				.onChange(async (value) => {
+					const num = Math.max(64, Math.min(4096, parseInt(value || '1024', 10) || 1024));
+					this.plugin.settings.ollamaNumPredict = num;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Temperature')
+			.setDesc('Lower = more deterministic (0.0–1.0)')
+			.addText(text => text
+				.setPlaceholder('0.2')
+				.setValue(String(this.plugin.settings.ollamaTemperature ?? 0.2))
+				.onChange(async (value) => {
+					const num = Math.max(0, Math.min(1, parseFloat(value || '0.2') || 0.2));
+					this.plugin.settings.ollamaTemperature = num;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Enable text-only fallback')
+			.setDesc('If image processing fails or model lacks vision, try a conservative text-only cleanup (Tesseract)')
+			.addToggle(toggle => toggle
+				.setValue(Boolean(this.plugin.settings.ollamaTextFallbackEnabled))
+				.onChange(async (value) => {
+					this.plugin.settings.ollamaTextFallbackEnabled = value;
+					await this.plugin.saveSettings();
+				}));
 	}
 }

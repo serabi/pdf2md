@@ -5,10 +5,11 @@
 - [x] Implement `AnthropicProvider` adapter using existing logic from `src/ai.ts`
 - [x] Implement `OllamaProvider` adapter (initial port from existing logic)
 - [x] Implement `OpenRouterProvider` adapter (stub)
-- [ ] Introduce a unified internal message/content abstraction and translate in each provider
+- [x] Implement `OpenAIProvider` adapter (official OpenAI API support)
+- [x] Introduce a unified internal message/content abstraction and translate in each provider
 - [x] Refactor `src/ai.ts` to a thin router delegating to providers
 - [x] Update settings types to hold provider-specific config where applicable
-- [ ] Update UI for provider selection to use provider registry and dynamic model lists
+- [x] Update UI for provider selection to use provider registry and dynamic model lists
 
 ### Strengthen Ollama integration (robustness, quality, UX)
 - [ ] Multi‑page support
@@ -33,7 +34,7 @@
   - [x] Filter and label vision-capable models (llava, bakllava, etc.)
   - [x] Add override: "Force send images to this model"
 - [ ] Text-only fallback
-  - [ ] If image processing fails or model lacks vision, optionally run PDF text extraction + formatting prompt
+  - [x] If image processing fails or model lacks vision, optionally run text OCR (Tesseract) + formatting prompt
  - [ ] Cross‑platform extraction
   - [x] Replace hardcoded `/opt/homebrew/bin/pdftoppm` with PATH lookup and configurable binary path
   - [x] If Poppler missing, fallback to PDF.js rendering path
@@ -56,8 +57,8 @@
   - [x] Configurable DPI, max width, format (PNG/JPEG + quality)
   - [ ] Page range selection in modal (e.g., `1-5,7,10-`)
 - [ ] PDF.js fallback renderer
-  - [ ] Implement stable canvas render path in `src/pdf.ts` for environments without Poppler
-  - [ ] Auto-select fallback when Poppler is missing or fails
+  - [x] Implement stable canvas render path in `src/pdf.ts` for environments without Poppler
+  - [x] Auto-select fallback when Poppler is missing or fails
 
 ### Output quality and post‑processing
 - [ ] Multi-pass pipeline (optional via setting)
@@ -70,7 +71,7 @@
 ### UX and workflow
 - [ ] Progress modal upgrades
   - [ ] Show step-by-step progress, current page/chunk, elapsed time
-  - [ ] Add cancel/abort that terminates in-flight requests and cleans temp files
+  - [x] Add cancel/abort that terminates in-flight requests and cleans temp files
 - [ ] Folder watcher
   - [ ] Debounce events and ignore partial writes
   - [ ] Concurrency limit for batch processing
@@ -91,8 +92,8 @@
 - [ ] Update `src/ui/PDF2MDSettingTab.ts` to use provider registry (dynamic fields per provider)
 
 ### Tests & diagnostics
-- [ ] Add a "Run diagnostics" action in settings
-  - [ ] Tests: connectivity, model listing, tiny sample request per provider
+- [x] Add a "Run diagnostics" action in settings
+  - [x] Tests: connectivity, model listing, tiny sample request (Ollama)
   - [ ] Surface clear pass/fail messages and suggested fixes
 - [ ] Unit-testable helpers (URL normalization, payload splitting, image sizing)
 

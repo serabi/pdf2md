@@ -1,25 +1,31 @@
 # PDF2MD - PDF to Markdown Converter for Obsidian
 
-Convert PDF documents to structured Markdown using AI (Anthropic Claude or Ollama). Extract text from PDFs and transform them into clean, well-organized Markdown notes for your vault.
+Convert PDF documents to structured Markdown using either local or cloud AI. Extract text from PDFs and transform them into clean, well-organized Markdown notes for your vault.
+
+This plugin is currently in active development. You may run into issues whil erunning it 
 
 ## Features
 
 ### **AI-Powered Conversion**
-- **Anthropic Claude Integration**: Support for Claude 3.5 Sonnet, Claude 3 Opus, and other Claude models
-- **Local Ollama Support**: Use vision-capable models like LLaVa for completely local processing
-- **Advanced OCR**: Handles handwritten text, complex layouts, and multi-column documents
-- **Vision Processing**: Converts PDF pages to images and uses AI vision capabilities for accurate text extraction
+- **Anthropic Claude**: Current Claude models including Sonnet 4
+- **OpenAI**: Use GPT-4o family and other chat/vision models via the official API
+- **Ollama (Local)**: Run vision-capable local models like LLaVA
+- **LM Studio (Local)**: Connect to LM Studio over your network and use its models
+
+#### **For All Models**
+- **Vision Processing**: Converts PDF pages to images and uses AI vision for accurate text extraction
+- **Post AI Processing**: Optional post-processing and multi-pass refinement to further clean the Markdown
 
 ### **Multiple Conversion Methods**
 - **Ribbon Icon**: Quick access via the PDF2MD icon in Obsidian's ribbon
 - **Command Palette**: "Convert PDF to Markdown" and "Process current PDF file" commands
 - **Context Menu**: Right-click any PDF in the file explorer to convert
-- **Automatic Watching**: Monitor folders for new PDFs and convert them automatically
+- **Automatic Watching**: Monitor folders for new PDFs and convert them automatically (event-driven, not polling)
 
 ### **Customizable Processing**
 - **Custom Prompts**: Create, edit, and manage conversion prompts for different document types
-- **Built-in Templates**: Pre-configured prompts for academic papers, handwritten notes, and general documents
-- **Post-Processing**: Apply templates with frontmatter, tags, and custom formatting
+- **Post-Processing Template**: Apply templates with frontmatter, tags, and custom formatting
+- **AI Multi-pass Refinement**: Optional 2nd and 3rd passes to normalize structure, headings, and tables
 - **Output Control**: Choose where converted files are saved
 
 ### **Security & Privacy**
@@ -29,33 +35,20 @@ Convert PDF documents to structured Markdown using AI (Anthropic Claude or Ollam
 
 ## Installation
 
-### From Obsidian Community Plugins (Recommended)
+### Via BRAT Plugin (Recommended)
 1. Open Obsidian Settings
 2. Go to **Community plugins** and disable **Safe mode**
-3. Click **Browse** and search for "PDF2MD"
-4. Install and enable the plugin
+3. Click **Browse** and search for "BRAT" (note: stands for Beta Reviewers Auto-update Tester)
+4. Install and enable the BRAT plugin
+5. Go to the BRAT plugin settings and click `Add beta plugin`
+6. Paste the URL for this repository (`https://github.com/serabi/pdf2md`) and then follow the prompts to select the latest version and enable it 
+7. Once the plugin is added and enabled via the BRAT plugin, you'll be able to find the plugin settings in Obsidian 
+
 
 ### Manual Installation
 1. Download the latest release from [GitHub](https://github.com/serabi/pdf2md/releases)
 2. Extract the files to `{VaultFolder}/.obsidian/plugins/pdf2md-plugin/`
 3. Reload Obsidian and enable the plugin in settings
-
-## Setup
-
-### AI Provider Configuration
-
-#### Option 1: Anthropic Claude (Recommended)
-1. Go to **Settings** → **PDF2MD** → **General** tab
-2. Select **Anthropic Claude** as your AI Provider
-3. Enter your [Anthropic API key](https://console.anthropic.com/)
-4. Choose your preferred Claude model (Claude 3.5 Sonnet recommended)
-
-#### Option 2: Ollama (Local Processing)
-1. Install [Ollama](https://ollama.ai/) on your computer
-2. Install a vision-capable model: `ollama pull llava`
-3. In plugin settings, select **Ollama (Local)** as your AI Provider
-4. Set Ollama URL (default: `http://localhost:11434`)
-5. Click **Refresh Models** to load available models
 
 ## Usage
 
@@ -71,6 +64,9 @@ Convert PDF documents to structured Markdown using AI (Anthropic Claude or Ollam
 3. Set **Watch Folder** (e.g., "PDF Inbox")
 4. Optionally set **Output Folder** for converted files
 5. Drop PDFs into the watch folder for automatic conversion
+Notes:
+- The watcher is event-driven. It reacts to new PDFs created or moved into the folder.
+- Use a vault-relative folder path (e.g., `PDF Inbox`).
 
 ### Custom Prompts
 1. Go to **Settings** → **PDF2MD** → **Prompts** tab
@@ -102,9 +98,13 @@ source: PDF
 ## Configuration Options
 
 ### General Settings
-- **AI Provider**: Choose between Anthropic Claude or Ollama
-- **API Keys**: Securely stored and password-masked
-- **Model Selection**: Automatic refresh for Ollama models
+- **AI Provider**: Anthropic, OpenAI, Ollama (Local), LM Studio (Local)
+- **API Keys**: Securely stored and password-masked (Anthropic/OpenAI; LM Studio optional)
+- **Model Selection**:
+  - Anthropic: pick a Claude model
+  - OpenAI: enter model (e.g., `gpt-4o`)
+  - Ollama: refresh and select from local models; vision models labeled; test connection
+  - LM Studio: set base URL (e.g., `http://10.0.0.97:1234`), refresh models; vision models labeled; test connection
 - **Current Prompt**: Edit active conversion prompt
 - **Output Folder**: Where to save converted files
 
@@ -114,18 +114,22 @@ source: PDF
 - **Prompt Library**: Save and organize multiple prompts
 
 ### Advanced Options
-- **Post-processing**: Apply templates to generated content
+- **AI Multi-pass Refinement**: Optional Pass 2 and Pass 3 prompts to improve Markdown after initial extraction
+- **Post-processing Template**: Wrap output with your template and placeholders
+- **PDF Image Extraction**: Control DPI, max width, format (PNG/JPEG + quality); Poppler path test; automatic PDF.js fallback if Poppler is missing
+- **OCR Fallback (Tesseract)**: If image processing fails or model lacks vision, an OCR cleanup path can be used
 - **Folder Watching**: Automatic PDF monitoring
 - **Security Features**: Path validation and secure storage
 
-## Supported Document Types
+### Providers Overview
+- **Anthropic**: Requires API key. Choose a Claude model.
+- **OpenAI**: Requires API key. Enter the model name (e.g., `gpt-4o`).
+- **Ollama**: Provide base URL (default `http://localhost:11434`). Refresh models; vision models labeled. Test connection available.
+- **LM Studio**: Provide base URL (default `http://localhost:1234` or your LAN IP). Refresh models; vision models labeled. Test connection available.
 
-- **Academic Papers**: Research articles, journals, conference papers
-- **Handwritten Notes**: Scanned notebooks, handwritten documents
-- **Technical Documents**: Manuals, specifications, reports
-- **Books & Articles**: Text-heavy documents with complex layouts
-- **Forms & Tables**: Structured data and tabular content
-- **Multi-language**: Documents in various languages
+### Diagnostics
+- Run Diagnostics from the Ollama tab to check connectivity, model listing, and environment (Poppler/Tesseract) status.
+
 
 ## Troubleshooting
 
@@ -134,32 +138,31 @@ source: PDF
 **"No models found" for Ollama**
 - Ensure Ollama is running: `ollama serve`
 - Install a vision model: `ollama pull llava`
-- Check Ollama URL in settings
+- Check Ollama URL in settings and click "Refresh Models"
+
+**"No models found" for LM Studio**
+- Ensure LM Studio server is running and accessible (try opening `http://localhost:1234` or your LAN URL)
+- Verify Base URL in settings and click "Refresh Models"
 
 **API Key errors**
-- Verify your Anthropic API key is correct
-- Check your API usage limits
-- Ensure the key has proper permissions
+- Verify your Anthropic/OpenAI API key is correct
+- Check your API usage limits and permissions
 
 **PDF conversion fails**
 - Large PDFs may take several minutes
 - Try with a smaller PDF first
 - Check console for detailed error messages
-
-**Poor conversion quality**
-- Try different prompts for your document type
-- Use Claude 3.5 Sonnet for best results
-- Consider adjusting your custom prompts
+- If Poppler is missing, the plugin will fallback to PDF.js rendering automatically
 
 ### Performance Tips
 - **Large PDFs**: May take 2-5 minutes for complex documents
-- **Handwritten text**: Use specific prompts mentioning handwriting
+- **Vision models**: Prefer vision-capable models (labeled) for image-based PDFs
 - **Multiple languages**: Specify languages in your prompt
 - **Tables**: Use prompts that emphasize table structure preservation
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions! 
 
 ### Development Setup
 1. Clone the repository

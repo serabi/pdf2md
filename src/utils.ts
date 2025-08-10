@@ -122,3 +122,82 @@ export async function testPdftoppmPath(userPath?: string): Promise<boolean> {
         return false;
     }
 }
+
+export async function runTesseract(options: {
+    imagePaths: string[];
+    tesseractPath?: string;
+    languages?: string;
+    oem?: number;
+    psm?: number;
+}): Promise<string> {
+    const { spawn } = require('child_process');
+    const path = require('path');
+    const os = require('os');
+    const fs = require('fs').promises;
+    const tmpOut = path.join(os.tmpdir(), `pdf2md-ocr-${Date.now()}`);
+    const tesseract = options.tesseractPath && options.tesseractPath.trim().length > 0 ? options.tesseractPath : 'tesseract';
+    const lang = options.languages || 'eng';
+    const oem = typeof options.oem === 'number' ? options.oem : 1;
+    const psm = typeof options.psm === 'number' ? options.psm : 6;
+
+    // For multiple images, concatenate OCR results
+    let aggregate = '';
+    for (let i = 0; i < options.imagePaths.length; i++) {
+        const img = options.imagePaths[i];
+        const outBase = `${tmpOut}-${i}`;
+        const args = [img, outBase, '-l', lang, '--oem', String(oem), '--psm', String(psm), 'txt'];
+        await new Promise<void>((resolve, reject) => {
+            const proc = spawn(tesseract, args);
+            let stderr = '';
+            proc.stderr.on('data', (d: any) => { stderr += d.toString(); });
+            proc.on('close', async (code: number) => {
+                if (code === 0) {
+                    try {
+                        const txt = await fs.readFile(`${outBase}.txt`, 'utf-8');
+                        aggregate += (aggregate ? '\n\n---\n\n' : '') + txt.trim();
+                        await fs.unlink(`${outBase}.txt`).catch(() => {});
+                        resolve();
+                    } catch (e) {
+                        reject(e);
+                    }
+                } else {
+                    reject(new Error(stderr || 'Tesseract failed'));
+                }
+            });
+            proc.on('error', (e: any) => reject(e));
+        });
+    }
+    return aggregate;
+}
+
+export async function testTesseractPath(userPath?: string): Promise<boolean> {
+    try {
+        const { spawn } = require('child_process');
+        const candidates: string[] = [];
+        if (userPath && userPath.trim()) candidates.push(userPath.trim());
+        candidates.push('tesseract');
+        const isWin = process.platform === 'win32';
+        if (isWin) {
+            candidates.push('C://Program Files//Tesseract-OCR//tesseract.exe');
+        } else {
+            candidates.push('/usr/bin/tesseract');
+            candidates.push('/usr/local/bin/tesseract');
+        }
+        for (const p of candidates) {
+            const ok = await new Promise<boolean>((resolve) => {
+                try {
+                    const child = spawn(p, ['-v']);
+                    child.on('error', () => resolve(false));
+                    child.on('close', (code: number) => resolve(code === 0 || code === 1));
+                    setTimeout(() => resolve(false), 2000);
+                } catch {
+                    resolve(false);
+                }
+            });
+            if (ok) return true;
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}

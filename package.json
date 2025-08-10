@@ -1,7 +1,7 @@
 {
 	"name": "pdf2md-plugin",
-	"version": "0.2.3",
-	"description": "Convert PDF documents to structured Markdown using AI (Anthropic Claude or Ollama)",
+  "version": "0.3.0",
+  "description": "Convert PDFs to clean Markdown using AI. Supports Anthropic Claude, OpenAI, Ollama (local), and LM Studio (local), with vision, multi-pass refinement, templates, and folder watching.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -17,7 +17,7 @@
 		"anthropic",
 		"ollama"
 	],
-	"author": "PDF2MD Development Team",
+  "author": "Sarah Wolff (serabi)",
 	"license": "MIT",
 	"dependencies": {
 		"pdfjs-dist": "^5.3.31"

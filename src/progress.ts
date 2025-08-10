@@ -6,6 +6,7 @@ export type ProgressUpdate = {
 };
 
 let reporter: ((u: ProgressUpdate) => void) | null = null;
+let cancelled = false;
 
 export function setProgressReporter(fn: (u: ProgressUpdate) => void) {
   reporter = fn;
@@ -23,4 +24,16 @@ export function reportProgress(update: ProgressUpdate) {
       // ignore UI errors
     }
   }
+}
+
+export function requestCancel() {
+  cancelled = true;
+}
+
+export function resetCancel() {
+  cancelled = false;
+}
+
+export function isCancelled(): boolean {
+  return cancelled;
 }
