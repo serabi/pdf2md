@@ -2,7 +2,7 @@
 
 Convert PDF documents to structured Markdown using either local or cloud AI. Extract text from PDFs and transform them into clean, well-organized Markdown notes for your vault.
 
-This plugin is currently in active development. You may run into issues whil erunning it 
+This plugin is currently in active development. You may run into issues while running it - please don't hesitate to file an Issue under the GitHub tab
 
 ## Features
 
