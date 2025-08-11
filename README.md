@@ -31,7 +31,6 @@ This plugin is currently in active development. You may run into issues whil eru
 ### **Security & Privacy**
 - **Secure API Key Storage**: API keys are stored securely in Obsidian's encrypted storage
 - **Path Validation**: Protection against directory traversal and command injection
-- **No Data Logging**: Sensitive information is never logged or exposed
 
 ## Installation
 
